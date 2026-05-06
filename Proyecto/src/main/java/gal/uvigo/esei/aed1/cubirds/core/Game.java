@@ -1,13 +1,8 @@
 package gal.uvigo.esei.aed1.cubirds.core;
 
 //por fin arreglamos los imports :D
-import gal.uvigo.esei.aed1.auxiliaryClasses.Pair;
 import gal.uvigo.esei.aed1.cubirds.iu.IU;
 import es.uvigo.esei.aed1.tads.list.List;
-import es.uvigo.esei.aed1.tads.list.LinkedList;
-
-
-
 
 public class Game {
 
@@ -16,16 +11,14 @@ public class Game {
     private DeckOfCards deck;
     private Table table;
     private Player[] players;
-    private int currentPlayerIndex;
 
     public Game(IU iu) {
         this.iu = iu;
         this.deck = new DeckOfCards();
         this.table = new Table();
-        this.table.inicializarMesa();
+        this.table.inicializarMesa(this.deck);
         this.players = null; // Se inicializa como null porque ya se convierte en un array en
                              // inicializarJugadores()
-        this.currentPlayerIndex = 0;
     }
 
     /**
@@ -52,10 +45,10 @@ public class Game {
             String nombre;
             do {
                 nombre = iu.readString("Nombre del jugador " + (i + 1) + ": ");
-                if (nombre.isBlank() || nombre == null) {
+                if (nombre == null || nombre.isBlank()) {
                     iu.displayMessage("El nombre no puede estar vacío o ser nulo.");
                 }
-            } while (nombre.isBlank() || nombre == null);
+            } while (nombre == null || nombre.isBlank());
 
             this.players[i] = new Player(nombre.trim());
         }
@@ -72,15 +65,7 @@ public class Game {
         for (Player jugador : this.players) {
             // Dar exactamente 8 cartas
             for (int i = 0; i < 8; i++) {
-                /*
-                 * Card carta = deck.takeFirstCard();
-                 * 
-                 * if (carta != null) {
-                 * jugador.addCardToHand(carta);
-                 * }
-                 */
-
-                jugador.addDeckCardToHand();
+                jugador.addCardToHand(deck.takeFirstCard());
             }
         }
 
@@ -107,74 +92,16 @@ public class Game {
         iu.displayMessage("========================================\n");
     }
 
-    public void playCardsOnRow(Player player, Pair<TypeBird, List<Card>> pair, int rowIndex, boolean placeLeft) {
-        TypeBird species = pair.getKey();
-        List<Card> cardsToPlay = pair.getValue();
+    private TypeBird elegirTipo(Player player) {
+        return iu.chooseBirdType(player.getPlayableSpecies());
+    }
 
-        List<Card> capturedCards = new LinkedList<>();
-        List<Card> row = table.getFilas()[rowIndex]; // Obtenemos la fila de la mesa donde se van a colocar las cartas
+    private int elegirFila() {
+        return iu.chooseRow(table.getRowCount());
+    }
 
-        // Verifica si hay cartas de la misma especie ya en la fila
-        boolean hasSameTypeBird = false;
-        int index = 0;
-
-        while (index < row.size() && hasSameTypeBird == false) {
-            if (row.get(index).getTypeBird() == species) {
-                hasSameTypeBird = true;
-            }
-            index++;
-        }
-
-        // Colocar las cartas en el lado especificado
-        if (placeLeft) { // Las cartas se colocan a la izquierda o derecha según el booleano placeLeft
-
-            for (int i = 0; i < cardsToPlay.size(); i++) {
-                row.addFirst(cardsToPlay.get(i));
-            }
-        } else {
-            for (int i = 0; i < cardsToPlay.size(); i++) {
-
-                row.addLast(cardsToPlay.get(i)); // :p
-
-            } // Añade cada carta individualmente a la derecha
-
-        }
-
-        // Guarda las posiciones donde están los pájaros de la especie insertada
-        List<Integer> speciesPositions = new LinkedList<>();
-        for (int i = 0; i < row.size(); i++) {
-            if (row.get(i).getTypeBird() == species) {
-                speciesPositions.addLast(i);
-            }
-        }
-
-        // Si hay al menos 2 cartas de la especie, capturar las del medio
-        if (hasSameTypeBird == true) {
-
-            int firstPos = speciesPositions.get(0); // Aquí utilice get para no crear mas getters :P
-
-            int lastPos = speciesPositions.get(speciesPositions.size() - 1);
-
-            // Captura cartas entre la primera y última aparición de la especie (SIN incluir
-            // los pájaros :D) 
-            // Solo captura si hay cartas en el medio (firstPos + 1 < lastPos)
-            if (firstPos + 1 < lastPos) {
-                for (int i = firstPos + 1; i < lastPos; i++) {
-                    capturedCards.addLast(row.get(i));
-                }
-            }
-
-            // Elimina las cartas capturadas y los pájaros rodeados de la fila (de atrás
-            // hacia adelante para no desindexar)
-            for (int i = lastPos; i >= firstPos; i--) {
-                row.remove(i);
-            }
-        }
-
-        // Se añaden las cartas de capturedCards a la mano del jugador
-        for (int i = 0; i < capturedCards.size(); i++) {
-            player.addCardToHand(capturedCards.get(i));
-        }
+    private boolean elegirLado() {
+        return iu.chooseSide();
     }
 
     public void executePlayerTurn(Player player) {
@@ -184,70 +111,14 @@ public class Game {
 
         iu.displayMessage(table.toString());
 
-        int eleccion = -1;
-        // lista de los pares que puede coger como la mano
-        List<Pair<TypeBird, List<Card>>> validPairs = new LinkedList();
+        TypeBird tipoElegido = elegirTipo(player);
+        int filaElegida = elegirFila();
+        boolean colocarIzquierda = elegirLado();
 
-        Pair<TypeBird, List<Card>> parEscogido = null;
+        List<Card> cardsToPlay = player.takeCardsOfSpecies(tipoElegido);
+        List<Card> capturedCards = table.placeCardsOnRow(cardsToPlay, filaElegida, colocarIzquierda);
 
-        do {
-            iu.displayMessage("Escoge un tipo de pájaro válido que tengas en tu baraja: ");
-
-            int i = 1;
-
-            validPairs.clear(); // Limpiar la lista de tipos válidos antes de llenarla nuevamente
-
-            for (Pair par : player.getHand()) {
-                // Solo mostrar tipos de pájaro que tengan al menos una carta
-                LinkedList<Card> cardList = (LinkedList<Card>) par.getValue();
-                if (!cardList.isEmpty()) {
-                    validPairs.addLast(par);
-
-                    TypeBird tipoSiendoMostrado = (TypeBird) par.getKey();
-
-                    iu.displayMessage(i + ". " + tipoSiendoMostrado.toString());
-                    i++;
-                }
-            }
-            eleccion = iu.readNumber("");
-        } while (eleccion < 1 || eleccion > validPairs.size());
-
-        // TypeBird tipoElegido = (TypeBird) validPairs.get(eleccion - 1).getKey(); //
-        // Restamos 1 porque la lista se muestra a partir de 1 pero
-        // // los índices empiezan en 0
-
-        parEscogido = validPairs.get(eleccion - 1);
-
-        // Preguntar fila
-        int filaElegida = -1;
-        do {
-            iu.displayMessage("¿En qué fila deseas colocar tu(s) carta(s)? (De 1 a " + table.getFilas().length + "): ");
-
-            filaElegida = iu.readNumber("");
-        } while (filaElegida < 1 || filaElegida > table.getFilas().length);
-
-        boolean colocarIzquierda = false;
-        do {
-
-            eleccion = iu.readNumber("En que lado quieres colocar las cartas? 1 para izquierda, 2 para derecha. ");
-            if (eleccion == 1) {
-                colocarIzquierda = true;
-                iu.displayMessage("Has elegido colocar las cartas a la izquierda.");
-
-            } else if (eleccion == 2) {
-                colocarIzquierda = false;
-                iu.displayMessage("Has elegido colocar las cartas a la derecha.");
-            }
-
-        } while (eleccion < 1 || eleccion > 2);
-
-        playCardsOnRow(player, parEscogido, filaElegida - 1, colocarIzquierda);
-
-        // Eliminar las cartas jugadas de la mano del jugador
-        LinkedList<Card> cardsToRemove = (LinkedList<Card>) parEscogido.getValue();
-        for (Card card : cardsToRemove) {
-            player.removeCardFromHand(card);
-        }
+        player.addCardsToHand(capturedCards);
 
         // Mostrar la mano del jugador después de la acción
         iu.displayMessage("\n--- Estado después de jugar cartas ---");
@@ -267,8 +138,9 @@ public class Game {
 
         // Bucle principal
         boolean gameFinished = false;
+        int currentPlayerIndex = 0;
 
-        while (!gameFinished) {
+        do {
             Player currentPlayer = players[currentPlayerIndex];
 
             // Ejecutar turno del jugador actual
@@ -290,7 +162,7 @@ public class Game {
                 // siguiente jugador comience
                 iu.readString("\nPresiona cualquiera tecla para continuar...");
             }
-        }
+        } while (!gameFinished);
 
         // Resultados
         iu.displayMessage("\n=== RESULTADOS FINALES ===");
@@ -298,17 +170,5 @@ public class Game {
             iu.displayMessage(p.getName() + ": " + p.getHandSize() + " cartas.");
         }
 
-    }
-
-    public Player[] getPlayers() {
-        return this.players;
-    }
-
-    public Table getTable() {
-        return this.table;
-    }
-
-    public DeckOfCards getDeck() {
-        return this.deck;
     }
 }

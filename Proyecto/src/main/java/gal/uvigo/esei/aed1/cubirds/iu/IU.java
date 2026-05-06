@@ -2,6 +2,9 @@ package gal.uvigo.esei.aed1.cubirds.iu;
 
 import java.util.Scanner;
 
+import es.uvigo.esei.aed1.tads.list.List;
+import gal.uvigo.esei.aed1.cubirds.core.TypeBird;
+
 public class IU {
 
     private final Scanner keyboard;
@@ -42,6 +45,44 @@ public class IU {
 
     public void displayMessage(String msg) {
         System.out.println(msg);
+    }
+
+    public TypeBird chooseBirdType(List<TypeBird> availableTypes) {
+        int choice = -1;
+
+        do {
+            displayMessage("Escoge un tipo de pájaro válido:");
+            for (int i = 0; i < availableTypes.size(); i++) {
+                displayMessage((i + 1) + ". " + availableTypes.get(i));
+            }
+            choice = readNumber("");
+        } while (choice < 1 || choice > availableTypes.size());
+
+        return availableTypes.get(choice - 1);
+    }
+
+    public int chooseRow(int rowCount) {
+        int choice = -1;
+
+        do {
+            displayMessage("Elige una fila:");
+            for (int i = 0; i < rowCount; i++) {
+                displayMessage((i + 1) + ". Fila " + (i + 1));
+            }
+            choice = readNumber("Fila: ");
+        } while (choice < 1 || choice > rowCount);
+
+        return choice - 1;
+    }
+
+    public boolean chooseSide() {
+        int choice = -1;
+
+        do {
+            choice = readNumber("En que lado quieres colocar las cartas? 1 izquierda, 2 derecha: ");
+        } while (choice < 1 || choice > 2);
+
+        return choice == 1;
     }
 
 }

@@ -1,36 +1,16 @@
 package gal.uvigo.esei.aed1.cubirds.core;
 
 import es.uvigo.esei.aed1.tads.list.LinkedList;
-import gal.uvigo.esei.aed1.auxiliaryClasses.Pair;
+import es.uvigo.esei.aed1.tads.list.List;
 
 public class Player {
     private String name;
-    private LinkedList<Pair<TypeBird, LinkedList<Card>>> hand; // lista de listas de cada tipo de carta, donde cada
-                                                               // "sublista" incluye cada
-    // carta de su tipo.
+    private List<List<Card>> hand; // Lista de grupos, cada grupo contiene cartas de la misma especie.
 
     // Constructor
     public Player(String name) {
         this.name = name;
-        this.hand = new LinkedList<Pair<TypeBird, LinkedList<Card>>>();
-
-        for (TypeBird tipo : TypeBird.values()) {
-            hand.addLast(new Pair<>(tipo, new LinkedList<>()));
-        }
-    }
-
-    public void addDeckCardToHand() {
-
-        Card cardToAdd = DeckOfCards.takeFirstCard();
-
-        for (Pair<TypeBird, LinkedList<Card>> par : hand) {
-            if (par.getKey() == cardToAdd.getTypeBird()) {
-                LinkedList<Card> checkedCardList = par.getValue();
-                checkedCardList.addLast(cardToAdd);
-                par.setValue(checkedCardList);
-                break;
-            }
-        }
+        this.hand = new LinkedList<>();
     }
 
     // Getters
@@ -38,55 +18,68 @@ public class Player {
         return this.name;
     }
 
-    public LinkedList<Pair<TypeBird, LinkedList<Card>>> getHand() {
-        
-        return hand;
-    }
-
     public int getHandSize() {
         int total = 0;
-        for (Pair<TypeBird, LinkedList<Card>> par : hand) {
-            total += par.getValue().size();
+        for (int i = 0; i < hand.size(); i++) {
+            total += hand.get(i).size();
         }
         return total;
     }
 
-    // Añadir carta a la mano
-    public void addCardToHand(Card card) { 
-        for (Pair<TypeBird, LinkedList<Card>> par : hand) {
-            if (par.getKey() == card.getTypeBird()) {
-                // checkedCardList es necesario para tranformar el tipo de Object a List<Card>
-                LinkedList<Card> checkedCardList = par.getValue();
-                checkedCardList.addLast(card);
-                par.setValue(checkedCardList);
-                break;
+    public List<TypeBird> getPlayableSpecies() {
+        List<TypeBird> species = new LinkedList<>();
+        for (int i = 0; i < hand.size(); i++) {
+            List<Card> group = hand.get(i);
+            if (!group.isEmpty()) {
+                species.addLast(group.get(0).getTypeBird());
             }
+        }
+        return species;
+    }
+
+    // Añadir carta a la mano
+    public void addCardToHand(Card card) {
+        boolean added = false;
+
+        for (int i = 0; i < hand.size() && !added; i++) {
+            List<Card> group = hand.get(i);
+            if (group.get(0).getTypeBird() == card.getTypeBird()) {
+                group.addLast(card);
+                added = true;
+            }
+        }
+
+        if (!added) {
+            List<Card> newGroup = new LinkedList<>();
+            newGroup.addLast(card);
+            hand.addLast(newGroup);
         }
     }
 
-    public void removeCardFromHand(Card card) {
-        for (Pair<TypeBird, LinkedList<Card>> par : hand) {
-            if (par.getKey() == card.getTypeBird()) {
+    public void addCardsToHand(List<Card> cards) {
+        for (int i = 0; i < cards.size(); i++) {
+            addCardToHand(cards.get(i));
+        }
+    }
 
-                LinkedList<Card> checkedCardList = par.getValue();
+    public List<Card> takeCardsOfSpecies(TypeBird species) {
+        List<Card> toReturn = new LinkedList<>();
+        boolean found = false;
 
-                checkedCardList.removeValue(card);
-
-                return;
+        for (int i = 0; i < hand.size() && !found; i++) {
+            List<Card> group = hand.get(i);
+            if (group.get(0).getTypeBird() == species) {
+                toReturn = group;
+                hand.remove(i);
+                found = true;
             }
         }
+
+        return toReturn;
     }
 
     public boolean hasNoCards() {
-
-        for (Pair<TypeBird, LinkedList<Card>> par : hand) {
-            // checkedCardList es necesario para tranformar el tipo de Object a List<Card>
-            LinkedList<Card> checkedCardList = par.getValue();
-            if (!checkedCardList.isEmpty()) {
-                return false;
-            }
-        }
-        return true;
+        return hand.isEmpty();
     }
 
     // Método toString
@@ -99,13 +92,10 @@ public class Player {
             sb.append("\nBaraja de ").append(this.getName()).append(": ");
 
             for (int i = 0; i < hand.size(); i++) { // Por cada tipo de carta...
-
-                for (int j = 0; j < hand.get(i).getValue().size(); j++) {
-
-                    Card card = hand.get(i).getValue().get(j); // Me da una carta
-
-                    sb.append("\n").append(card.getTypeBird()).append(": Bandada pequeña - ")
-                            .append(card.getSmallFlock()).append("; Bandada grande - ").append(card.getLargeFlock());
+                List<Card> group = hand.get(i);
+                for (int j = 0; j < group.size(); j++) {
+                    Card card = group.get(j); // Me da una carta
+                    sb.append("\n").append(card.toString());
                 }
             }
         }
