@@ -11,12 +11,14 @@ public class Game {
     private DeckOfCards deck;
     private Table table;
     private Player[] players;
+    private DiscardedCards discardedCards;
 
     public Game(IU iu) {
         this.iu = iu;
         this.deck = new DeckOfCards();
         this.table = new Table();
         this.table.inicializarMesa(this.deck);
+        this.discardedCards = new DiscardedCards();
         this.players = null; // Se inicializa como null porque ya se convierte en un array en
                              // inicializarJugadores()
     }
@@ -121,12 +123,20 @@ public class Game {
 
         player.addCardsToHand(capturedCards);
 
+        if (!capturedCards.isEmpty()) {
+            table.ensureRowHasTwoSpecies(filaElegida, deck, discardedCards);
+        }
+
         // Mostrar la mano del jugador después de la acción
         iu.displayMessage("\n--- Estado después de jugar cartas ---");
         iu.displayMessage(player.toString());
 
         // Mostrar la mesa actualizada
         iu.displayMessage(table.toString());
+
+        if (!player.hasNoCards()) {
+            handleCollectionChoice(player);
+        }
 
     }
 
@@ -144,18 +154,21 @@ public class Game {
         do {
             Player currentPlayer = players[currentPlayerIndex];
 
-            if (currentPlayer.hasNoCards()) {
-                iu.displayMessage(currentPlayer.getName() + " Ha ganado la partida!");
-                gameFinished = true;
-            } else {
+            if (!currentPlayer.hasNoCards()) {
                 // Ejecutar turno del jugador actual
                 executePlayerTurn(currentPlayer);
+            }
 
-                // Verificar condición de fin de juego (ej: un jugador se queda sin sus oniichan
-                // cartas)
-                if (currentPlayer.hasNoCards()) {
-                    iu.displayMessage(currentPlayer.getName() + " Ha ganado la partida!");
+            if (!gameFinished) {
+                if (currentPlayer.getCollectedSpeciesCount() >= 7) {
+                    iu.displayMessage(currentPlayer.getName()
+                            + " Ha ganado la partida! Ha conseguido 7 especies de pájaros.");
                     gameFinished = true;
+                } else {
+                    boolean endByNoDeal = handleEmptyHand(currentPlayer);
+                    if (endByNoDeal) {
+                        gameFinished = true;
+                    }
                 }
             }
 
@@ -172,8 +185,83 @@ public class Game {
         // Resultados
         iu.displayMessage("\n=== RESULTADOS FINALES ===");
         for (Player p : players) {
-            iu.displayMessage(p.getName() + ": " + p.getHandSize() + " cartas.");
+            iu.displayMessage(p.getName() + ": " + p.getCollectedSpeciesCount()
+                    + " especies, " + p.getCollectionSize() + " cartas en coleccion.");
         }
 
+    }
+
+    private void handleCollectionChoice(Player player) {
+        boolean wantsToCollect = iu.chooseYesNo("¿Deseas añadir una especie a tu zona de juego?");
+
+        if (wantsToCollect) {
+            TypeBird chosenSpecies = iu.chooseBirdType(player.getPlayableSpecies());
+            int availableCards = player.getHandCountForSpecies(chosenSpecies);
+            int requiredCards = player.getSmallFlockForSpecies(chosenSpecies);
+
+            if (availableCards >= requiredCards) {
+                player.incrementSpeciesCounter(chosenSpecies);
+                List<Card> discarded = player.takeCardsOfSpecies(chosenSpecies);
+                discardedCards.addCards(discarded);
+                iu.displayMessage("Especie añadida a la zona de juego.");
+            } else {
+                iu.displayMessage("No es posible bajar esa especie a la zona de juego.");
+            }
+        }
+    }
+
+    private boolean handleEmptyHand(Player currentPlayer) {
+        if (!currentPlayer.hasNoCards()) {
+            return false;
+        }
+
+        iu.displayMessage(currentPlayer.getName() + " se ha quedado sin cartas.");
+        iu.displayMessage("Los demas jugadores se descartan por completo.");
+
+        for (int i = 0; i < players.length; i++) {
+            if (players[i] != currentPlayer) {
+                List<Card> discarded = players[i].takeAllCards();
+                discardedCards.addCards(discarded);
+            }
+        }
+
+        discardedCards.moveAllToDeck(deck);
+
+        if (!canDealCards(8)) {
+            Player winner = getWinnerByCollection();
+            iu.displayMessage(winner.getName()
+                    + " ha ganado la partida porque no ha sido posible realizar el reparto de cartas.");
+            return true;
+        }
+
+        iu.displayMessage("Repartiendo nuevas manos...");
+        for (int i = 0; i < players.length; i++) {
+            for (int j = 0; j < 8; j++) {
+                players[i].addCardToHand(deck.takeFirstCard());
+            }
+        }
+
+        iu.displayMessage("Reparto completado. Cada jugador tiene 8 cartas.");
+        return false;
+    }
+
+    private boolean canDealCards(int cardsPerPlayer) {
+        int totalCardsNeeded = cardsPerPlayer * players.length;
+        return deck.size() >= totalCardsNeeded;
+    }
+
+    private Player getWinnerByCollection() {
+        Player winner = players[0];
+        int bestScore = winner.getCollectionSize();
+
+        for (int i = 1; i < players.length; i++) {
+            int currentScore = players[i].getCollectionSize();
+            if (currentScore > bestScore) {
+                winner = players[i];
+                bestScore = currentScore;
+            }
+        }
+
+        return winner;
     }
 }

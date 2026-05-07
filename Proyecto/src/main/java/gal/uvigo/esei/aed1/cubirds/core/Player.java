@@ -6,11 +6,13 @@ import es.uvigo.esei.aed1.tads.list.List;
 public class Player {
     private String name;
     private List<List<Card>> hand; // Lista de grupos, cada grupo contiene cartas de la misma especie.
+    private int[] speciesCounters; // Contador de especies en la zona de juego.
 
     // Constructor
     public Player(String name) {
         this.name = name;
         this.hand = new LinkedList<>();
+        this.speciesCounters = new int[TypeBird.values().length];
     }
 
     // Getters
@@ -26,6 +28,29 @@ public class Player {
         return total;
     }
 
+    public int getCollectedSpeciesCount() {
+        int total = 0;
+        for (int i = 0; i < speciesCounters.length; i++) {
+            if (speciesCounters[i] > 0) {
+                total += 1;
+            }
+        }
+        return total;
+    }
+
+    public int getCollectionSize() {
+        int total = 0;
+        for (int i = 0; i < speciesCounters.length; i++) {
+            total += speciesCounters[i];
+        }
+        return total;
+    }
+
+    public void incrementSpeciesCounter(TypeBird species) {
+        int index = species.ordinal();
+        speciesCounters[index] = speciesCounters[index] + 1;
+    }
+
     public List<TypeBird> getPlayableSpecies() {
         List<TypeBird> species = new LinkedList<>();
         for (int i = 0; i < hand.size(); i++) {
@@ -35,6 +60,22 @@ public class Player {
             }
         }
         return species;
+    }
+
+    public int getHandCountForSpecies(TypeBird species) {
+        int index = findGroupIndex(species);
+        if (index == -1) {
+            return 0;
+        }
+        return hand.get(index).size();
+    }
+
+    public int getSmallFlockForSpecies(TypeBird species) {
+        int index = findGroupIndex(species);
+        if (index == -1) {
+            return 0;
+        }
+        return hand.get(index).get(0).getSmallFlock();
     }
 
     // Añadir carta a la mano
@@ -64,22 +105,44 @@ public class Player {
 
     public List<Card> takeCardsOfSpecies(TypeBird species) {
         List<Card> toReturn = new LinkedList<>();
-        boolean found = false;
+        int index = findGroupIndex(species);
 
-        for (int i = 0; i < hand.size() && !found; i++) {
-            List<Card> group = hand.get(i);
-            if (group.get(0).getTypeBird() == species) {
-                toReturn = group;
-                hand.remove(i);
-                found = true;
-            }
+        if (index != -1) {
+            toReturn = hand.get(index);
+            hand.remove(index);
         }
 
         return toReturn;
     }
 
+    public List<Card> takeAllCards() {
+        List<Card> allCards = new LinkedList<>();
+
+        for (int i = 0; i < hand.size(); i++) {
+            List<Card> group = hand.get(i);
+            for (int j = 0; j < group.size(); j++) {
+                allCards.addLast(group.get(j));
+            }
+        }
+
+        hand.clear();
+
+        return allCards;
+    }
+
     public boolean hasNoCards() {
         return hand.isEmpty();
+    }
+
+    private int findGroupIndex(TypeBird species) {
+        int index = -1;
+        for (int i = 0; i < hand.size() && index == -1; i++) {
+            List<Card> group = hand.get(i);
+            if (group.get(0).getTypeBird() == species) {
+                index = i;
+            }
+        }
+        return index;
     }
 
     // Método toString

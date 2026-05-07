@@ -28,7 +28,28 @@ public class DeckOfCards {
         return deckOfCards.removeFirst();
     }
 
+    public boolean isEmpty() {
+        return deckOfCards.isEmpty();
+    }
+
+    public int size() {
+        return deckOfCards.size();
+    }
+
     public void addLast(Card card) {
         deckOfCards.addLast(card);
+    }
+
+    public void shuffle() {
+        List<Card> shuffled = new LinkedList<>();
+
+        while (!deckOfCards.isEmpty()) {
+            int randomCard = (int) (Math.random() * deckOfCards.size());
+            shuffled.addLast(deckOfCards.remove(randomCard));
+        }
+
+        while (!shuffled.isEmpty()) {
+            deckOfCards.addLast(shuffled.removeFirst());
+        }
     }
 }

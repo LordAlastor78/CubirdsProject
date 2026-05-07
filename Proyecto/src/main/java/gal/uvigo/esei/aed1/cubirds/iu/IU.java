@@ -85,4 +85,14 @@ public class IU {
         return choice == 1;
     }
 
+    public boolean chooseYesNo(String message) {
+        int choice = -1;
+
+        do {
+            choice = readNumber(message + " (1 si, 2 no): ");
+        } while (choice < 1 || choice > 2);
+
+        return choice == 1;
+    }
+
 }

@@ -117,6 +117,40 @@ public class Table {
         return capturedCards;
     }
 
+    public void ensureRowHasTwoSpecies(int rowIndex, DeckOfCards deck, DiscardedCards discardedCards) {
+        List<Card> row = filas[rowIndex];
+        boolean canDraw = true;
+
+        while (canDraw && !rowHasAtLeastTwoSpecies(row)) {
+            if (deck.isEmpty() && !discardedCards.isEmpty()) {
+                discardedCards.moveAllToDeck(deck);
+            }
+
+            if (deck.isEmpty()) {
+                canDraw = false;
+            } else {
+                row.addLast(deck.takeFirstCard());
+            }
+        }
+    }
+
+    private boolean rowHasAtLeastTwoSpecies(List<Card> row) {
+        if (row.size() < 2) {
+            return false;
+        }
+
+        TypeBird firstSpecies = row.get(0).getTypeBird();
+        boolean different = false;
+
+        for (int i = 1; i < row.size() && !different; i++) {
+            if (row.get(i).getTypeBird() != firstSpecies) {
+                different = true;
+            }
+        }
+
+        return different;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
