@@ -96,7 +96,14 @@ public class Game {
     }
 
     private TypeBird elegirTipo(Player player) {
-        return iu.chooseBirdType(player.getPlayableSpecies());
+        List<TypeBird> playable = player.getPlayableSpecies();
+
+        if (playable.isEmpty()) {
+            iu.displayMessage("ERROR: El jugador no tiene especies jugables. Saltando turno.");
+            return null;
+        }
+
+        return iu.chooseBirdType(playable);
     }
 
     private int elegirFila() {
@@ -115,6 +122,13 @@ public class Game {
         iu.displayMessage(table.toString());
 
         TypeBird tipoElegido = elegirTipo(player);
+
+        // Si no hay especies jugables, saltar turno
+        if (tipoElegido == null) {
+            iu.displayMessage("No es posible jugar. Turno saltado.");
+            return;
+        }
+
         int filaElegida = elegirFila();
         boolean colocarIzquierda = elegirLado();
 
@@ -201,7 +215,7 @@ public class Game {
 
             if (availableCards >= requiredCards) {
                 player.incrementSpeciesCounter(chosenSpecies);
-                List<Card> discarded = player.takeCardsOfSpecies(chosenSpecies);
+                List<Card> discarded = player.takeNCardsOfSpecies(chosenSpecies, requiredCards);
                 discardedCards.addCards(discarded);
                 iu.displayMessage("Especie añadida a la zona de juego.");
             } else {

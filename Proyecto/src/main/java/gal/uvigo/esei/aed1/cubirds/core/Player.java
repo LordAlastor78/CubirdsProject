@@ -115,6 +115,30 @@ public class Player {
         return toReturn;
     }
 
+    /**
+     * Toma exactamente N cartas de una especie y mantiene el resto en la mano.
+     */
+    public List<Card> takeNCardsOfSpecies(TypeBird species, int count) {
+        List<Card> toReturn = new LinkedList<>();
+        int index = findGroupIndex(species);
+
+        if (index != -1) {
+            List<Card> group = hand.get(index);
+
+            // Tomar exactamente 'count' cartas del grupo
+            for (int i = 0; i < count && !group.isEmpty(); i++) {
+                toReturn.addLast(group.removeFirst());
+            }
+
+            // Si el grupo quedó vacío, remover el grupo de la mano
+            if (group.isEmpty()) {
+                hand.remove(index);
+            }
+        }
+
+        return toReturn;
+    }
+
     public List<Card> takeAllCards() {
         List<Card> allCards = new LinkedList<>();
 
