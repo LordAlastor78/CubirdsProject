@@ -1,4 +1,5 @@
 package gal.uvigo.esei.aed1.cubirds.iu;
+
 /* 
 Cubirds Project
 
@@ -90,7 +91,7 @@ public class IU {
 
         do { // lógica para el tema del input, se repite hasta que el jugador elige un número
              // de fila válido.
-            displayMessage("Elige una fila:");
+            displayMessage("Elige una fila (1-4):");
             for (int i = 0; i < rowCount; i++) {
                 displayMessage((i + 1) + ". Fila " + (i + 1));
             }
@@ -100,7 +101,8 @@ public class IU {
         return choice - 1;
     }
 
-    // Pide al jugador a que escoja poner las cartas por la derecha o por la izquierda.
+    // Pide al jugador a que escoja poner las cartas por la derecha o por la
+    // izquierda.
     public boolean chooseSide() {
         int choice = -1;
 

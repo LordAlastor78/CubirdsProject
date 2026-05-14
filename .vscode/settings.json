@@ -2,5 +2,10 @@
     "java.configuration.updateBuildConfiguration": "automatic",
     "java.import.maven.enabled": true,
     "java.import.gradle.enabled": false,
-    "gradle.enabled": false
+    "gradle.enabled": false,
+    "java.codeGeneration.generateComments": false,
+    "[java]": {
+        "editor.suggest.showClasses": true,
+        "editor.suggest.showFunctions": true,
+    }
 }

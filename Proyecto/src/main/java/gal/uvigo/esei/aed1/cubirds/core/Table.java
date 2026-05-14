@@ -30,8 +30,6 @@ public class Table {
 
         for (int i = 0; i < 4; i++) { // Por cada una de las 4 filas, le añadimos 3 cartas
 
-            this.filas[i].clear();
-
             while (this.filas[i].size() < 3) { // Se pone 3 porque hay que añadir 3 cartas a cada fila.
 
                 Card candidate = deck.takeFirstCard();
@@ -93,17 +91,11 @@ public class Table {
                 }
             }
         }
-        if (placeLeft) {
-            for (int i = cardsToPlay.size() - 1; i >= 0; i--) {
-                // Si colocamos a la izquierda, añadimos las cartas en orden inverso para que la
-                // primera carta de cardsToPlay quede más a la izquierda
-                row.addFirst(cardsToPlay.get(i));
-            }
-        } else {
-            for (int i = 0; i < cardsToPlay.size(); i++) {
-                // Si colocamos a la derecha, añadimos las cartas en orden normal para que la
-                // primera carta de cardsToPlay quede más a la derecha
-                row.addLast(cardsToPlay.get(i));
+        for (Card card : cardsToPlay) {
+            if (placeLeft) {
+                row.addFirst(card);
+            } else {
+                row.addLast(card);
             }
         }
 

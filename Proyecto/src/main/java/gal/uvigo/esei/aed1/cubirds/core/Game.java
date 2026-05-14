@@ -1,8 +1,8 @@
 package gal.uvigo.esei.aed1.cubirds.core;
 
+import es.uvigo.esei.aed1.tads.list.List;
 //por fin arreglamos los imports :D
 import gal.uvigo.esei.aed1.cubirds.iu.IU;
-import es.uvigo.esei.aed1.tads.list.List;
 
 public class Game {
 
@@ -141,19 +141,13 @@ public class Game {
         do {
             Player currentPlayer = players[currentPlayerIndex];
 
+            // Ejecutar turno del jugador actual
+            executePlayerTurn(currentPlayer);
+
+            // Verificar condición de fin de juego (un jugador se queda sin cartas)
             if (currentPlayer.hasNoCards()) {
                 iu.displayMessage(currentPlayer.getName() + " Ha ganado la partida!");
                 gameFinished = true;
-            } else {
-                // Ejecutar turno del jugador actual
-                executePlayerTurn(currentPlayer);
-
-                // Verificar condición de fin de juego (ej: un jugador se queda sin sus oniichan
-                // cartas)
-                if (currentPlayer.hasNoCards()) {
-                    iu.displayMessage(currentPlayer.getName() + " Ha ganado la partida!");
-                    gameFinished = true;
-                }
             }
 
             if (!gameFinished) {
