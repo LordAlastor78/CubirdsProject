@@ -4,8 +4,17 @@
     "java.import.gradle.enabled": false,
     "gradle.enabled": false,
     "java.codeGeneration.generateComments": false,
+    "java.debug.settings.enableRunDebugCodeLens": true,
+    "java.debug.settings.showHex": false,
+    "java.test.editor.codeLens": true,
+    "java.referencesCodeLens.enabled": true,
+    "java.implementationsCodeLens.enabled": true,
+    "java.inlayHints.parameterNames.enabled": "all",
+    "editor.inlayHints.enabled": "on",
     "[java]": {
         "editor.suggest.showClasses": true,
         "editor.suggest.showFunctions": true,
+        "editor.suggest.showMethods": true,
+        "editor.inlayHints.enabled": "on",
     }
 }
