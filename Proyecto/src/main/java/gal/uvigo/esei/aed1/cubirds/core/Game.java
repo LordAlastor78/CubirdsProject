@@ -173,6 +173,8 @@ public class Game {
                 executePlayerTurn(currentPlayer);
             }
 
+            
+
             if (!gameFinished) {
                 if (currentPlayer.getCollectedSpeciesCount() >= 7) {
                     iu.displayMessage(currentPlayer.getName()

@@ -55,9 +55,7 @@ public class Player {
         List<TypeBird> species = new LinkedList<>();
         for (int i = 0; i < hand.size(); i++) {
             List<Card> group = hand.get(i);
-            if (!group.isEmpty()) {
-                species.addLast(group.get(0).getTypeBird());
-            }
+            species.addLast(group.get(0).getTypeBird());
         }
         return species;
     }

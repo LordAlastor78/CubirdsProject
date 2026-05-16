@@ -28,9 +28,6 @@ public class Table {
     public void inicializarMesa(DeckOfCards deck) {
 
         for (int i = 0; i < 4; i++) { // Por cada una de las 4 filas, le añadimos 3 cartas
-
-            this.filas[i].clear();
-
             while (this.filas[i].size() < 3) { // Se pone 3 porque hay que añadir 3 cartas a cada fila.
 
                 Card candidate = deck.takeFirstCard();
@@ -87,7 +84,7 @@ public class Table {
         }
 
         if (placeLeft) {
-            for (int i = cardsToPlay.size() - 1; i >= 0; i--) {
+            for (int i = 0; i < cardsToPlay.size(); i++) {
                 row.addFirst(cardsToPlay.get(i));
             }
         } else {
