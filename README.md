@@ -1,112 +1,224 @@
-	"""
-# CuBirds — Proyecto AED I (2025–2026)
+# CuBirds — Proyecto AED I (Tercera Entrega) 𓅫
 
-**Descripción**
+░░░░░░░░▄▄▄▀▀▀▀▀▄▄███▄░░░░░░░░░░░░░░░░
+░░░░░▄▀▀░░░░░░░░▐░▀██▌░░░░░░░░░░░░░░░░
+░░░▄▀░░░░▄▄████░▌▀▀░▀█░░░░░░░░░░░░░░░░
+░░▄█░░▄▀▀▒▒▒▒▒▒▄▐░░░░█▌░░░░░░░░░░░░░░░
+░▐█▀▄▀▄▄▄▄▀▀▀▀▀▀▌░░░░░▐█▄░░░░░░░░░░░░░
+░▌▄▄▀▀░░░░░░░░░░▌░░░░▄███████▄░░░░░░░░
+░░░░░░░░░░░░░░░▐░░░░▐███████████▄░░░░░
+░░░░░le░░░░░░░░░▐░░░░▐█████████████▄░░
+░░░░toucan░░░░░░░░▀▄░░░▐█████████████▄ 
+░░░░░░has░░░░░░░░░░▀▄▄███████████████░ 
+░░░░░arrivedd░░░░░░░░░░░░░█▀██████░░░░
 
-Alan Fernández Teijeiro
-Diego Feijóo Ángel
-Lois Feijóo 
-Mateo Fernández Rodríguez
-Andrés 
+Proyecto en Java del juego de cartas **CuBirds**, desarrollado para la asignatura de Algoritmos y Estructuras de Datos I.
 
-CuBirds es un juego de cartas de pájaros para 2–5 jugadores, creado por Stefan Alexander (2018).
-El objetivo es conseguir en tu zona de juego una colección con 7 especies distintas (de 8), o bien
-tener 2 especies con al menos 3 pájaros cada una.
+Este repositorio contiene la **tercera entrega** del proyecto, con la lógica completa de juego, la gestión de descartes, el relleno automático de filas de la mesa y la zona de juego de cada jugador.
 
-## Resumen rápido
+## Qué hace el proyecto 𓅫
 
-- Jugadores: 2–5
-- Cartas en la baraja: 110
-- Cartas en mano al inicio de ronda: 8
-- Filas en mesa: 4 filas (vallas), cada una con 3 cartas de especies distintas
+El programa permite jugar a CuBirds por consola para **2 a 5 jugadores**.
 
-## Cartas y especies
+El objetivo es ganar la partida consiguiendo:
+- **7 especies distintas** en la zona de juego, o
+- en caso de final por falta de cartas, tener la **mayor colección total**.
 
-La baraja contiene 8 especies con las cantidades totales siguientes:
+Durante la partida el sistema gestiona:
+- la baraja de cartas,
+- el montón de descartes,
+- la mesa con 4 filas,
+- la mano de cada jugador,
+- la zona de juego mediante contador por especie,
+- las capturas de cartas rodeadas,
+- el relleno de filas cuando quedan con una única especie,
+- el reciclado de descartes cuando la baraja se agota.
 
-- Flamenco (2/3): 7 cartas
-- Lechuza (3/4): 10 cartas
-- Tucán (3/4): 10 cartas
-- Pato (4/6): 13 cartas
-- Guacamayo (4/6): 13 cartas
-- Urraca (5/7): 17 cartas
-- Curruca de caña (6/9): 20 cartas
-- Petirrojo (6/9): 20 cartas
+## Estructura del proyecto 𓅫
 
-Cada carta muestra: especie (arriba izquierda), número total de esa especie (abajo izquierda)
-y dos umbrales (bandada pequeña / bandada grande) arriba a la derecha. Para este proyecto, solo
-se considera el umbral de la bandada pequeña: si un jugador tiene en mano >= ese número, puede
-añadir 1 punto (1 carta) de esa especie a su zona de juego (opcional).
+La carpeta principal del código es `Proyecto/`.
 
-## Preparación de la partida
+```text
+Proyecto/
+├─ pom.xml
+├─ explained.md
+└─ src/
+   ├─ main/java/
+   │  ├─ es/uvigo/esei/aed1/tads/...
+   │  └─ gal/uvigo/esei/aed1/cubirds/
+   │     ├─ core/
+   │     └─ iu/
+   └─ test/java/   (si se añaden pruebas)
+```
 
-1. Barajar la baraja.
+Paquetes principales:
+- `gal.uvigo.esei.aed1.cubirds.core` — lógica del juego.
+- `gal.uvigo.esei.aed1.cubirds.iu` — interfaz por consola.
+- `es.uvigo.esei.aed1.tads` — TADs auxiliares usados por el proyecto.
 
-2. Colocar 4 filas en mesa con 3 cartas cada una; cada fila debe contener al menos 2 especies
-	 diferentes. Si aparece una especie repetida en la misma fila, descartar esa carta al fondo y
-	 robar otra hasta conseguir 3 especies distintas.
+## Clases principales 𓅫
 
-3. Repartir 8 cartas a cada jugador (mano oculta).
+### `Card`
+Representa una carta de pájaro.
 
-4. Elegir jugador inicial; el turno sigue en sentido de las agujas del reloj.
+Contiene información de:
+- especie (`TypeBird`),
+- tamaño de bandada pequeña,
+- tamaño de bandada grande,
+- representación textual.
 
-## Desarrollo del juego (por turno)
+### `TypeBird`
+Enumeración de las especies del juego.
 
-En su turno, cada jugador realiza obligatoriamente la acción de jugar cartas y puede opcionalmente
-completar bandadas y/o provocar el rellenado de filas:
+Se usa para:
+- identificar cartas,
+- agrupar cartas iguales,
+- comparar especies,
+- calcular condiciones de juego.
 
-- Jugar cartas (acción obligatoria): elegir una especie en mano y bajar todas las cartas de esa
-	especie, colocándolas a la izquierda o derecha de una de las 4 filas. Si esa especie ya está
-	presente en la fila, todas las cartas que queden entre las cartas iguales (las rodeadas) vuelan
-	a la mano del jugador que las baja. Las cartas restantes en la fila se juntan para no dejar huecos.
+### `DeckOfCards`
+Representa la baraja principal.
 
-- Completar una bandada (opcional): si el jugador tiene en mano un número de cartas de una especie
-	>= al umbral de bandada pequeña indicado por la carta, puede descartar todas esas cartas y
-	aumentar en 1 el contador de esa especie en su zona de juego (las cartas descartadas van al
-	montón de descartes). Esta acción es opcional.
+Funciones típicas:
+- crear y barajar el mazo,
+- sacar la primera carta,
+- añadir cartas al final,
+- comprobar si está vacía,
+- obtener su tamaño,
+- mezclarla.
 
-- Rellenar mesa: si una fila queda compuesta solo por cartas de la misma especie, se deben robar
-	cartas de la baraja hasta encontrar una carta de especie distinta (cada fila debe tener al menos
-	2 especies). Si la baraja se agota, barajar el montón de descartes y continuar.
+### `DiscardedCards`
+Representa el montón de descartes.
 
-Al terminar su turno, pasa al siguiente jugador.
+Permite:
+- añadir una carta,
+- añadir varias cartas,
+- comprobar si está vacío,
+- conocer su tamaño,
+- pasar todo su contenido a la baraja y barajar.
 
-## Fin de la ronda y reaprovisionamiento
+### `Table`
+Representa la mesa de juego con 4 filas.
 
-Una ronda termina cuando el jugador activo se queda sin cartas en la mano. En ese momento,
-los demás jugadores descartan todas sus cartas al montón de descartes. Se baraja el montón de
-descartes para formar la nueva baraja y se reparte de nuevo 8 cartas a cada jugador. Si no es
-posible repartir 8 cartas a cada jugador, el juego finaliza y gana el jugador con más cartas en su
-zona de juego (empate: cualquiera de los vencedores).
+Responsabilidades:
+- inicializar las 4 filas con 3 cartas distintas cada una,
+- colocar cartas en un extremo de una fila,
+- detectar capturas cuando una especie queda rodeando cartas,
+- rellenar una fila si queda con una sola especie,
+- mostrar el estado de la mesa.
 
-## Fin de la partida
+### `Player`
+Representa a un jugador.
 
-La partida termina cuando, al finalizar su turno, un jugador tiene 7 especies diferentes en su
-zona de juego.
+Gestiona:
+- el nombre,
+- la mano de cartas agrupada por especie,
+- la zona de juego como contador por especie,
+- las cartas que puede jugar,
+- las cartas que puede bajar a su colección,
+- las cartas que debe descartar o recuperar.
 
-## Información adicional
+### `Game`
+Controla el flujo completo de la partida.
 
-Video ejemplo: https://www.youtube.com/watch?v=9mdsxCs6d40
+Se encarga de:
+- pedir jugadores y nombres,
+- repartir cartas,
+- ejecutar turnos,
+- comprobar la victoria,
+- reciclar descartes,
+- repartir cartas nuevas cuando un jugador se queda sin mano,
+- finalizar la partida si no se puede repartir.
 
-## Organización del trabajo (para el proyecto)
+### `IU`
+Interfaz de usuario por consola.
 
-1. Trabajo en equipo (4–5 estudiantes). Formación de equipos mediante la plataforma Moovi.
-2. Implementación en Java y Visual Studio Code siguiendo las reglas descritas.
-3. Cada integrante debe conocer todas las partes y ser responsable de su contribución.
+Permite:
+- leer números,
+- leer texto,
+- mostrar mensajes,
+- elegir especie,
+- elegir fila,
+- elegir lado,
+- responder sí/no.
 
-### Entregas
+## Cómo se juega 𓅫
 
-- Se exigirán 3 entregas funcionales; las tareas y fechas se indicarán en Moovi.
-- Cada entrega se defenderá ante el docente por todos los miembros del equipo.
-- Copias entre grupos: suspenso para ambos grupos implicados.
+### 1. Inicio
 
-### Evaluación
+Al arrancar el programa:
+1. Se pregunta cuántos jugadores van a participar.
+2. Se pide el nombre de cada jugador.
+3. Se crea la baraja y se baraja.
+4. Se inicializa la mesa con 4 filas de 3 cartas.
+5. Se reparten 8 cartas a cada jugador.
 
-- Evaluación grupal (tutoría final): 10% de la nota final.
-- Evaluación individual (examen práctico en ordenador, previsto 3 de junio de 2026): 20%.
+### 2. Turno de un jugador
+En cada turno el jugador activo:
 
-## Documentación
+1. Ve su mano y la mesa.
+2. Elige una especie que tenga en la mano.
+3. Elige una fila (1-4).
+4. Elige si coloca a la izquierda o a la derecha.
+5. Baja todas las cartas de esa especie.
+6. Si rodea cartas de la fila, esas cartas se incorporan a su mano.
+7. Si la fila queda con una sola especie, se rellena hasta volver a tener al menos dos especies.
+8. Se comprueba si desea bajar una especie a su zona de juego.
+9. Si ha llegado a 7 especies distintas, gana la partida.
 
-La documentación del proyecto se encuentra en la carpeta `docs/`. Ver: [Documentación del proyecto](docs/index.md).
+### 3. Cuando un jugador se queda sin cartas
+Si el jugador activo termina su turno y se queda sin cartas:
+- los demás jugadores descartan toda su mano,
+- todos esos descartes pasan al montón de descartes,
+- el montón de descartes se devuelve a la baraja y se baraja,
+- se reparten 8 cartas a cada jugador otra vez.
 
+Si no hay cartas suficientes para repartir 8 a cada jugador:
+- finaliza la partida,
+- gana el jugador con más cartas en la zona de juego.
+
+## Reglas implementadas en código
+
+El proyecto ya incorpora la lógica de la tercera entrega:
+- `DiscardedCards` almacena descartes y los devuelve al mazo cuando hace falta.
+- `Player` mantiene el contador de especies de la zona de juego.
+- `Game` comprueba la victoria y la condición de fin por falta de cartas.
+- `Table` rellena filas cuando quedan con una sola especie.
+
+Además, se aplicaron correcciones pedidas en tutoría:
+- se eliminó el `clear()` innecesario al inicializar la mesa,
+- se simplificó la inserción de cartas al colocar por la izquierda,
+- se eliminó la comprobación redundante de grupos vacíos en `Player`.
+
+## Cómo compilar y ejecutar 𓅫
+
+usamos Maven para gestionar el proyecto, así como los errores.
+
+Desde la carpeta `Proyecto`:
+
+```powershell
+mvn clean package
+```
+
+Para ejecutar la aplicación desde Maven, si tu entorno tiene el plugin configurado:
+
+```powershell
+mvn exec:java -Dexec.mainClass="gal.uvigo.esei.aed1.cubirds.iu.Main"
+```
+
+
+
+
+## Autores 𓅫
+
+- Alan Fernández Teijeiro
+- Diego Feijóo Ángel
+- Lois Feijóo Lorenzo
+- Mateo Fernández Rodríguez
+- Andrés González Hermida
+
+
+𓅫 — ¡Gracias por leer! Esperamos que disfrutes jugando a CuBirds tanto como nosotros hemos disfrutado programándolo. 🐦✨
+
+---------------
 

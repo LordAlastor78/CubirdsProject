@@ -1,73 +1,207 @@
-# DOC — Documentación del proyecto CuBirds
+# Documentación exhaustiva — Proyecto CuBirds (Tercera Entrega)
 
-Este documento resume qué hace el proyecto, cómo está organizado el código y las decisiones de diseño relevantes.
 
-## Resumen del proyecto
-- Implementación en Java del juego CuBirds siguiendo el enunciado provisto.
-- Objetivo del juego: ser el primer jugador en tener 7 especies distintas en la zona de juego, o 2 especies con al menos 3 cartas cada una.
 
-## Reglas principales (resumen)
-- Preparación: se barajan las cartas y se colocan 4 filas (vallas) con 3 cartas cada una (3 especies distintas por fila). Cada jugador recibe 8 cartas y 1 carta en su zona de juego.
-- Turno de un jugador (acción obligatoria + opcionales):
-  - Jugar cartas: baja todas las cartas de una misma especie de su mano en un extremo (izquierdo/derecho) de una valla.
-  - Recoger rodeados: si las cartas colocadas rodean cartas (quedan entre dos cartas de la misma especie), esas cartas pasan a la mano del jugador.
-  - Completar bandada (opcional): si tiene suficiente número de cartas de una especie en la mano (umbral de bandada pequeña), puede revelar y descartar esas cartas para incrementar su contador de colección para esa especie.
-  - Rellenar fila: si una fila queda con todas cartas de la misma especie, se rellena hasta obtener al menos otra especie.
-- Fin de ronda: si el jugador activo se queda sin cartas en la mano, todos los demás descartan su mano; se baraja el montón de descartes como nueva baraja y se reparten 8 cartas a cada jugador (si no es posible, finaliza la partida y gana quien tenga más cartas en su colección).
-- Fin de la partida: cuando el jugador activo termina su turno y cumple la condición de victoria (7 especies distintas o 2 especies con ≥3 cartas).
+Índice
+- Resumen rápido
+- Reglas del juego mapeadas al código
+- Estructura del repositorio (archivos y paquetes)
+- Clases y API detallada (métodos públicos, comportamiento, ejemplos)
+- Uso: compilar, ejecutar y jugar (ejemplos)
+- Buenas prácticas y pruebas
+- Entrega y versión
 
-## Estructura del repositorio
-- Módulo principal: `gal.uvigo.esei.aed1_cubirds/` (contiene `pom.xml`).
-- Código fuente: `gal.uvigo.esei.aed1_cubirds/src/main/java/gal/uvigo/esei/aed1/cubirds/` con dos paquetes principales:
-  - `core`: lógica de juego y modelos.
-  - `iu`: interfaz de usuario / `Main`.
-- Documentación: `docs/` (contiene `build-and-run.md`, ahora `DOC.md`, y otros archivos descriptivos).
+Resumen rápido
+----------------
+- Implementación en Java del juego CuBirds siguiendo el enunciado de la asignatura.
+- Objetivo del juego (resumido): ser el primer jugador en conseguir 7 especies diferentes en su zona de juego (colección). Existe además la regla auxiliar de bandadas (bandada pequeña/grande) que condiciona cuántas cartas descartar para puntuar una especie.
 
-## Clases y responsabilidades (claves)
-- `Card.java` — representa una carta: especie, información de bandada (pequeña/grande), etc.
-- `TypeBird.java` — enumeración/definición de especies y parámetros (número total en baraja, umbrales de bandada).
-- `DeckOfCards.java` — baraja y operaciones de robo/barajar; mantiene el mazo y permite rellenar desde descartes.
-- `Player.java` — mano del jugador, zona de juego (colección), acciones para jugar cartas y completar bandadas.
-- `Table.java` — las 4 vallas/filas; operaciones para colocar cartas en extremos, detectar y recoger cartas rodeadas y rellenar filas.
-- `Game.java` — controla el flujo: turnos, detección de fin de ronda, reasignación de descartes, comprobación de victoria.
-- `IU.java` / `Main.java` — interfaz de usuario y punto de entrada del programa.
+Reglas del juego (mapa conceptual → comportamiento en el código)
+--------------------------------------------------------------
+- Preparación (clases implicadas):
+  - `DeckOfCards`: crea y baraja el mazo.
+  - `Table`: coloca 4 filas (vallas) con 3 cartas cada una, asegurando que inicialmente no haya especies repetidas en una misma fila.
+  - `Game.repartirCartas()`: reparte 8 cartas a cada jugador.
 
-## Estructuras de datos y decisiones (¿usar pilas?)
-- `Deck` y `discard` (montón de descartes): se implementan con `Deque<Card>` (p. ej. `ArrayDeque`) — comportamiento de tope para robar y apilar descartes; `Deque` es más moderno y flexible que `Stack`.
-- Vallas/filas en la mesa: `List<Card>` (por ejemplo `ArrayList` o `LinkedList`) porque se necesita insertar en ambos extremos y eliminar un rango desde el medio (las cartas rodeadas). `ArrayList` + `subList(...).clear()` es simple y eficiente para el tamaño reducido de cada fila.
-- Mano del jugador: `List<Card>`.
-- Zona de juego/colección: `Map<TypeBird,Integer>` (contador por especie) para comprobar bandadas y condiciones de victoria.
+- Turno de jugador (flujo principal en `Game.executePlayerTurn`):
+  1. Mostrar mano y mesa (`IU` + llamadas `toString()` de `Player` y `Table`).
+  2. Elegir especie jugable (`Player.getPlayableSpecies()` y `IU.chooseBirdType(...)`).
+  3. Elegir fila y lado (`IU.chooseRow()`, `IU.chooseSide()`).
+  4. Colocar cartas: `Table.placeCardsOnRow(cardsToPlay, rowIndex, placeLeft)`.
+  5. Recoger cartas rodeadas: `placeCardsOnRow` devuelve las cartas capturadas que se añaden a la mano del jugador.
+  6. Si tras la captura la fila quedó con una única especie, `Table.ensureRowHasTwoSpecies(rowIndex, deck, discardedCards)` rellena desde la baraja (o desde descartes si la baraja se queda vacía) hasta obtener otra especie.
+  7. Opcional: el jugador puede bajar una especie a su zona de juego (`Game.handleCollectionChoice`) si tiene al menos `smallFlock` cartas de esa especie en mano; entonces se incrementa su contador de especie (zona de juego) y las cartas se envían al `DiscardedCards`.
+  8. Comprobación de victoria: si `player.getCollectedSpeciesCount() >= 7`, termina la partida.
 
-Decisión práctica: sí usar estructuras tipo «pila» para `Deck` y `discard` (LIFO desde el tope), pero evitar `java.util.Stack` en favor de `Deque`.
+- Fin de ronda por mano vacía (`Game.handleEmptyHand`):
+  - Si el jugador activo se queda sin cartas, los demás se descartan por completo (sus manos van a `DiscardedCards`).
+  - Se vuelcan los descartes a la baraja (`DiscardedCards.moveAllToDeck(deck)`) y se baraja; se reparte nuevamente 8 cartas por jugador si es posible.
+  - Si no hay suficientes cartas para repartir 8 por jugador, el juego termina y gana el jugador con más cartas en su colección (`Game.getWinnerByCollection()`).
 
-## Mapeo de reglas → código (flujo de ejecución)
-1. Inicialización: `DeckOfCards` crea y baraja el mazo; `Table` coloca 4 filas con 3 cartas distintas cada una; `Game` reparte 8 cartas por jugador.
-2. Turno de jugador: `Game` invoca método para que `Player` escoja especie y `Table` coloque cartas en la fila/ extremo elegido.
-3. Tras colocar, `Table` detecta índices donde la misma especie rodea cartas y extrae esas cartas a la mano del jugador.
-4. Opcionalmente, `Player` puede completar una bandada: se descartan las cartas correspondientes y se actualiza su `Map<TypeBird,Integer>`.
-5. Si una fila queda con una única especie, `Table` pide cartas al `DeckOfCards` hasta introducir otra especie.
-6. Fin de ronda y fin de juego: `Game` detecta mano vacía del jugador activo, obliga a descartar manos restantes, mezcla descartes en `Deck` y reparte; `Game` comprueba condición de victoria tras cada turno.
+Estructura del repositorio
+---------------------------
+Raíz del módulo de código: `Proyecto/` (contiene `pom.xml` y `src/`).
 
-## Cómo compilar y ejecutar
-- Proyecto Maven ubicado en `gal.uvigo.esei.aed1_cubirds/`.
-- Resumen rápido (desde la raíz del repo):
+- Código principal Java: `src/main/java/gal/uvigo/esei/aed1/cubirds/`
+  - `core` — lógica y modelo del juego.
+  - `iu` — interfaz de usuario (consola) y `Main`.
+
+- Código auxiliar (TADs) añadido en `src/tads` (añadido al classpath por `pom.xml`): implementaciones simples de `List`, `Queue`, `Stack` usadas por el proyecto.
+
+Archivos importantes
+- `Proyecto/pom.xml` — configuración Maven del proyecto.
+- `src/main/java/gal/uvigo/esei/aed1/cubirds/iu/Main.java` — punto de entrada (si lo usas desde IDE o `mvn exec`).
+- `src/main/java/gal/uvigo/esei/aed1/cubirds/iu/IU.java` — interacción por consola (leer números, strings, mostrar menús).
+- `src/main/java/gal/uvigo/esei/aed1/cubirds/core/*` — clases del juego (listadas y documentadas más abajo).
+
+Clases y API detallada
+----------------------
+La sección siguiente lista las clases clave del paquete `core` y describe sus métodos públicos (firma, comportamiento y ejemplos de uso).
+
+1) `TypeBird` (enumeración)
+- Descripción: enum que representa las especies de pájaros del juego. Cada constante incluye parámetros (ej.: número de cartas en la baraja, umbral de bandada pequeña/grande si aplica).
+- Uso típico:
+  - `TypeBird.SOME_SPECIES` — acceder a la especie.
+  - `TypeBird.values()` — iterar todas las especies.
+
+2) `Card`
+- Descripción: modelo de una carta. Propiedades: `TypeBird typeBird`, `int smallFlock` (umbral bandada pequeña), `int bigFlock` (si aplica), representación textual.
+- Métodos públicos relevantes (ejemplo de firma):
+  - `TypeBird getTypeBird()` — devuelve la especie de la carta.
+  - `int getSmallFlock()` — devuelve el tamaño de bandada pequeña de la carta.
+  - `String toString()` — representación amigable para mostrar en la IU.
+
+3) `DeckOfCards`
+- Descripción: estructura que representa la baraja. Opera como deque (robar del frente, meter al final, barajar).
+- Métodos públicos:
+  - `void initialize()` / constructor — crea todas las cartas y baraja.
+  - `Card takeFirstCard()` — saca la carta superior del mazo. Lanza si está vacío (la lógica de juego revisa el montón de descartes antes de llamar si procede).
+  - `void addLast(Card c)` — añade una carta al final de la baraja (se usa para devolver cartas no utilizadas al final).
+  - `boolean isEmpty()` — indica si la baraja está vacía.
+  - `int size()` — número de cartas en el mazo.
+  - `void shuffle()` — mezcla el mazo.
+
+4) `DiscardedCards`
+- Descripción: acumulador de cartas descartadas. Implementa:
+  - `void addCard(Card card)` — añade una carta al montón.
+  - `void addCards(List<Card> cards)` — añade varias.
+  - `boolean isEmpty()` — true si no hay descartes.
+  - `int size()` — tamaño del montón.
+  - `void moveAllToDeck(DeckOfCards deck)` — pasa todas las cartas descartadas al mazo y baraja el mazo.
+
+5) `Table`
+- Descripción: representa las 4 filas del tablero y operaciones sobre las filas.
+- Atributos principales: `List<Card>[] filas` (4 listas).
+- Métodos públicos y comportamiento:
+  - `Table()` — constructor que crea las 4 listas vacías.
+  - `void inicializarMesa(DeckOfCards deck)` — coloca 3 cartas por fila: extrae cartas del mazo y, si la carta causa duplicado de especie dentro de la fila, devuelve la carta al final del mazo hasta completar 3 especies distintas.
+    - Nota: ya no limpia explícitamente las filas antes de inicializar (se asume nueva mesa en instancia nueva).
+  - `int getRowCount()` — devuelve 4.
+  - `List<Card> placeCardsOnRow(List<Card> cardsToPlay, int rowIndex, boolean placeLeft)` — coloca las cartas `cardsToPlay` en la fila `rowIndex`, en el lado izquierdo si `placeLeft==true` o derecho si es `false`.
+    - Comportamiento: inserta las cartas (sin necesidad de invertir la lista de entrada). Busca si hay cartas del mismo tipo en la fila; si existe, captura las cartas entre las posiciones correspondientes y las devuelve en una lista `capturedCards`.
+    - Devuelve `List<Card>` con las cartas capturadas; si no hay capturas, devuelve lista vacía.
+  - `void ensureRowHasTwoSpecies(int rowIndex, DeckOfCards deck, DiscardedCards discardedCards)` — cuando una fila queda con todas cartas de la misma especie, toma cartas del mazo hasta introducir otra especie. Si el mazo se vacía, vuelca descartes al mazo y continúa.
+  - `String toString()` — representación para mostrar la mesa por consola.
+
+6) `Player`
+- Descripción: modelo de jugador. Atributos públicos/claves: `String name`, `List<List<Card>> hand` (mano agrupada por especie), `int[] speciesCounters` (zona de juego: contador de cartas por especie).
+- Métodos públicos:
+  - `Player(String name)` — constructor.
+  - `String getName()`.
+  - `int getHandSize()` — total de cartas en la mano.
+  - `int getCollectedSpeciesCount()` — número de especies distintas que el jugador ha bajado (contador > 0).
+  - `int getCollectionSize()` — número total de cartas en la colección (sumatorio de counters).
+  - `void incrementSpeciesCounter(TypeBird species)` — incrementa en 1 el contador de la especie en la zona de juego.
+  - `List<TypeBird> getPlayableSpecies()` — devuelve lista de especies que el jugador puede jugar (una por cada grupo en la mano). Nota: los grupos vacíos no deberían existir; por eso no se comprueba `isEmpty()` en la implementación actual.
+  - `int getHandCountForSpecies(TypeBird species)` — número de cartas de esa especie en mano.
+  - `int getSmallFlockForSpecies(TypeBird species)` — devuelve el umbral de bandada pequeña asociado a la especie (se delega en la primera carta del grupo).
+  - `void addCardToHand(Card card)` / `void addCardsToHand(List<Card> cards)` — añaden cartas a la mano agrupadas por especie.
+  - `List<Card> takeCardsOfSpecies(TypeBird species)` — quita y devuelve el grupo completo de cartas de la mano para esa especie.
+  - `List<Card> takeNCardsOfSpecies(TypeBird species, int count)` — quita exactamente `count` cartas de la especie y devuelve la lista (si el grupo se queda vacío, se elimina de la mano).
+  - `List<Card> takeAllCards()` — vacía por completo la mano devolviendo todas las cartas (usado cuando un jugador se queda sin cartas y los demás deben descartarse).
+  - `boolean hasNoCards()` — true si la mano está vacía.
+  - `String toString()` — representación de la mano para mostrar por consola.
+
+7) `Game`
+- Descripción: controla el flujo completo de la partida.
+- Atributos principales: `IU iu`, `DeckOfCards deck`, `Table table`, `Player[] players`, `DiscardedCards discardedCards`.
+- Métodos relevantes:
+  - `Game(IU iu)` — constructor: inicializa mazo, mesa y descartes.
+  - `void inicializarJugadores()` — pide por consola el número de jugadores (2-5) y sus nombres, creando `Player` para cada uno.
+  - `void repartirCartas()` — reparte 8 cartas a cada jugador.
+  - `void mostrarEstadoInicial()` — imprime mesa y manos.
+  - `TypeBird elegirTipo(Player player)` — obtiene especies jugables y pide elección (IU).
+  - `int elegirFila()` — pide fila al usuario (`IU.chooseRow`) — ahora muestra `Elige una fila (1-N):`.
+  - `boolean elegirLado()` — pide lado (izquierda/derecha).
+  - `void executePlayerTurn(Player player)` — ejecuta todo el turno: mostrar mano/mesa, elegir especie, colocar cartas, añadir cartas capturadas a la mano, rellenar fila si procede, ofrecer opción de bajar especie a zona de juego, etc.
+  - `void play()` — bucle principal del juego: inicializa jugadores, reparte, ciclo de turnos, detecta victoria o fin de reparto por falta de cartas.
+  - `boolean handleEmptyHand(Player currentPlayer)` — si `currentPlayer` se queda sin cartas, fuerza a los otros a descartarse (añadiendo sus cartas a `discardedCards`), vuelca descartes en `deck` y reparte; devuelve `true` si no es posible repartir y la partida debe finalizar.
+  - `Player getWinnerByCollection()` — determina ganador por mayor colección en caso de final por falta de reparto.
+
+8) `IU` (Interfaz de Usuario)
+- Descripción: utilidades de lectura y display por consola usando `Scanner`.
+- Métodos relevantes:
+  - `int readNumber(String msg)` — lee un entero; reintenta hasta entrada válida.
+  - `String readString(String msg)` — lee una línea.
+  - `void displayMessage(String msg)` — imprime por consola.
+  - `TypeBird chooseBirdType(List<TypeBird> availableTypes)` — muestra lista numerada y devuelve elección.
+  - `int chooseRow(int rowCount)` — muestra filas disponibles y pide número; devuelve índice 0-based. Mensaje ahora `Elige una fila (1-N):`.
+  - `boolean chooseSide()` — pide 1 izquierda, 2 derecha.
+  - `boolean chooseYesNo(String message)` — pide 1 si, 2 no.
+
+Ejemplos y fragmentos de uso
+----------------------------
+Compilar con Maven desde la carpeta `Proyecto`:
 
 ```powershell
-cd gal.uvigo.esei.aed1_cubirds
 mvn clean package
-# Ejecutar Main desde IDE o con mvn exec (si está configurado):
-mvn exec:java -Dexec.mainClass="gal.uvigo.esei.aed1_cubirds.iu.Main"
 ```
 
-- Para instrucciones más detalladas, ver `docs/build-and-run.md`.
+Ejecutar el juego (desde IDE o con `mvn exec` si está configurado):
 
-## Notas para desarrollo y pruebas
-- Revisar `DeckOfCards` y `Table` si se cambian las reglas de extracción o rellenado de filas.
-- Mantener tests unitarios para: robo/barajar, operación de colocar cartas y recogida de cartas rodeadas, lógica de completar bandadas y condiciones de victoria.
+```powershell
+mvn exec:java -Dexec.mainClass="gal.uvigo.esei.aed1.cubirds.iu.Main"
+```
 
-## Sugerencias de mejora
-- Añadir pruebas unitarias automáticas para las reglas críticas.
-- Implementar una UI más amigable o una simulación automática para validar estrategias.
+Flujo de juego en la consola (ejemplo simplificado):
+
+1. Al iniciar: se pide número de jugadores (2-5) y nombres.
+2. Se muestra la mesa (4 filas con 3 cartas) y las manos de cada jugador.
+3. Turno 1: el primer jugador ve su mano y se le pide:
+   - elegir especie jugable (p. ej. `1. Gaviota`)
+   - elegir fila (`Elige una fila (1-4):`)
+   - elegir lado (1 izquierda / 2 derecha)
+4. Se colocan las cartas; si captura cartas, estas se añaden a la mano.
+5. Si la fila quedó con una única especie, la fila se rellena hasta que aparezca otra especie (robando del mazo o vaciando descartes en el mazo si es necesario).
+6. Tras la jugada, se pregunta si desea bajar una especie a su colección (bandada pequeña). Si lo hace y tiene suficientes cartas, se incrementa el contador y las cartas se descartan en `DiscardedCards`.
+7. Se comprueba victoria y se pasa turno.
+
+Notas de sintaxis y estilo para desarrolladores
+----------------------------------------------
+- Paquete raíz: `gal.uvigo.esei.aed1.cubirds` — seguir convención de paquetes para nuevas clases.
+- Evitar cambiar las firmas públicas de métodos sin actualizar los usos en `Game` y `Table`.
+- Si se añaden tests, colocar fuentes de test en `src/test/java` y configurar `pom.xml` si hace falta librerías de test (JUnit 5 por ejemplo).
+
+Pruebas recomendadas (unitarias/manuales)
+---------------------------------------
+- Tests unitarios sugeridos:
+  - `DeckOfCardsTest`: mezclar, tamaño, `takeFirstCard()` comportamiento cuando está vacío (esperar control externo), `shuffle()`.
+  - `TableTest`: `inicializarMesa()` (cada fila inicia con 3 cartas distintas), `placeCardsOnRow()` devuelve capturas correctas para varios escenarios, `ensureRowHasTwoSpecies()` rellena correctamente consumiendo descartes si el mazo se vacía.
+  - `PlayerTest`: agrupar cartas por especie, `takeNCardsOfSpecies()` elimina correctamente y actualiza grupos.
+  - `GameIntegrationTest`: simulación de varias rondas hasta victoria o fin de reparto.
+
+Entrega y versión
+-----------------
+- Fecha de la tercera entrega: 19 de mayo de 2026 (según enunciado).
+- La rama `terceraEntrega` se ha fusionado sobre `main` en este repositorio para preparar la entrega final.
+
+Ficheros relevantes con localización
+-----------------------------------
+- Código del juego: `Proyecto/src/main/java/gal/uvigo/esei/aed1/cubirds/core/` (clases `Card.java`, `DeckOfCards.java`, `DiscardedCards.java`, `Table.java`, `Player.java`, `Game.java`, `TypeBird.java`)
+- Interfaz: `Proyecto/src/main/java/gal/uvigo/esei/aed1/cubirds/iu/IU.java` y `Main.java`.
+
+
 
 ---
+
 
