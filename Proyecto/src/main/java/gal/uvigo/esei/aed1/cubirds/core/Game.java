@@ -23,14 +23,26 @@ public class Game {
                              // inicializarJugadores()
     }
 
-    /**
-     * brief
-     * Inicializa los jugadores preguntando cantidad y nombres.
-     * Los jugadores se almacenan directamente en this.players.
-     */
-
+    // Inicializa los jugadores preguntando cantidad y nombres.
+    // Los jugadores se almacenan directamente en this.players.
     private void inicializarJugadores() {
         int numJugadores;
+
+        // Mostrar tucán decorativo antes de preguntar el número de jugadores
+        iu.displayMessage("       𝙲𝚄𝙱𝙸𝚁𝙳𝚂 𝙲𝙻𝙸 | GrupoG        ");
+        iu.displayMessage("                                    ");
+        iu.displayMessage("░░░░░░░░▄▄▄▀▀▀▄▄███▄░░░░░░░░░░░░░░░░");
+        iu.displayMessage("░░░░░▄▀▀░░░░░░░▐░▀██▌░░░░░░░░░░░░░░░");
+        iu.displayMessage("░░░▄▀░░░░▄▄███░▌▀▀░▀█░░░░░░░░░░░░░░░");
+        iu.displayMessage("░░▄█░░▄▀▀▒▒▒▒▒▄▐░░░░█▌░░░░░░░░░░░░░░");
+        iu.displayMessage("░▐█▀▄▀▄▄▄▄▀▀▀▀▌░░░░░▐█▄░░░░░░░░░░░░░");
+        iu.displayMessage("░▌▄▄▀▀░░░░░░░░▌░░░░▄███████▄░░░░░░░░");
+        iu.displayMessage("░░░░░░░░░░░░░▐░░░░▐███████████▄░░░░░");
+        iu.displayMessage("░░░░░le░░░░░░░▐░░░░▐█████████████▄░░");
+        iu.displayMessage("░░░░toucan░░░░░░▀▄░░░▐█████████████▄");
+        iu.displayMessage("░░░░░░has░░░░░░░░▀▄▄███████████████");
+        iu.displayMessage("░░░░░arrived░░░░░░░░░░░░█▀██████░░░░");
+        iu.displayMessage("                                    ");
 
         // Pedir número válido de jugadores (2-5)
         do {
@@ -59,9 +71,7 @@ public class Game {
         iu.displayMessage(numJugadores + " jugadores creados. ");
     }
 
-    /**
-     * Reparte 8 cartas a cada jugador desde el mazo y ordena sus manos por especie.
-     */
+    // Reparte 8 cartas a cada jugador desde el mazo y ordena sus manos por especie.
     private void repartirCartas() {
         iu.displayMessage("Repartiendo cartas...");
 
@@ -75,9 +85,7 @@ public class Game {
         iu.displayMessage("Reparto completado. Cada jugador tiene 8 cartas.");
     }
 
-    /**
-     * Muestra el estado inicial: mesa y manos de todos los jugadores.
-     */
+    // Muestra el estado inicial: mesa y manos de todos los jugadores.
     private void mostrarEstadoInicial() {
         iu.displayMessage("\n========================================");
         iu.displayMessage("ESTADO INICIAL DEL JUEGO");
@@ -95,6 +103,8 @@ public class Game {
         iu.displayMessage("========================================\n");
     }
 
+    // Los tres métodos siguientes llaman a la iu, con elegirTipo recibiendo el
+    // jugador como parámetro.
     private TypeBird elegirTipo(Player player) {
         List<TypeBird> playable = player.getPlayableSpecies();
 
@@ -114,6 +124,8 @@ public class Game {
         return iu.chooseSide();
     }
 
+    // Recibe un jugador como parámetro y llama a todas las funciones necesarias
+    // para ejecutar su turno.
     public void executePlayerTurn(Player player) {
         iu.displayMessage("Turno del jugador " + player.getName() + ": ");
         // Mostrar baraja del jugador
@@ -154,6 +166,7 @@ public class Game {
 
     }
 
+    // Método play para la ejecución de todo el juego.
     public void play() {
 
         // Inicializar el juego
@@ -168,17 +181,21 @@ public class Game {
         do {
             Player currentPlayer = players[currentPlayerIndex];
 
+            // Si el jugador actual tiene cartas, ejecuta su turno.
             if (!currentPlayer.hasNoCards()) {
-                // Ejecutar turno del jugador actual
                 executePlayerTurn(currentPlayer);
             }
 
             if (!gameFinished) {
+                // Comprobación de si el jugador actual ha ganado por conseguir hacer 7 bandadas
+                // pequeñas distintas.
                 if (currentPlayer.getCollectedSpeciesCount() >= 7) {
                     iu.displayMessage(currentPlayer.getName()
                             + " Ha ganado la partida! Ha conseguido 7 especies de pájaros.");
                     gameFinished = true;
                 } else {
+                    // Si el jugador actual no tiene cartas, se comprueba si el juego termina por no
+                    // poder repartir nuevas cartas.
                     boolean endByNoDeal = handleEmptyHand(currentPlayer);
                     if (endByNoDeal) {
                         gameFinished = true;
@@ -187,7 +204,7 @@ public class Game {
             }
 
             if (!gameFinished) {
-                // El cálculo del siguiente índice funciona igual con .size() ,
+                // Actualizamos el índice de currentPlayer para el siguiente turno.
                 currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
 
                 // Pausa para que el jugador pueda ver el resultado de su turno antes de que el
@@ -205,6 +222,9 @@ public class Game {
 
     }
 
+    // Si el jugador quiere añadir una especie a su zona de juego, se verifica que
+    // tiene suficientes cartas de esa especie,
+    // las elimina de su mano, y suma uno a su contador de esa especie.
     private void handleCollectionChoice(Player player) {
         boolean wantsToCollect = iu.chooseYesNo("¿Deseas añadir una especie a tu zona de juego?");
 
@@ -224,6 +244,10 @@ public class Game {
         }
     }
 
+    // Si el jugador se queda sin cartas, se descartan todas las cartas de los demás
+    // jugadores, se devuelven al mazo, y se reparten nuevas manos.
+    // Si no es posible repartir nuevas manos, el jugador con más cartas en su
+    // colección gana.
     private boolean handleEmptyHand(Player currentPlayer) {
         if (!currentPlayer.hasNoCards()) {
             return false;
@@ -259,11 +283,15 @@ public class Game {
         return false;
     }
 
+    // Verifica si hay suficientes cartas en el mazo para repartir una nueva mano a
+    // cada jugador.
     private boolean canDealCards(int cardsPerPlayer) {
         int totalCardsNeeded = cardsPerPlayer * players.length;
         return deck.size() >= totalCardsNeeded;
     }
 
+    // Devuelve el jugador con más cartas en su colección.
+    // En caso de empate, devuelve el primero de estos que se encuentre.
     private Player getWinnerByCollection() {
         Player winner = players[0];
         int bestScore = winner.getCollectionSize();

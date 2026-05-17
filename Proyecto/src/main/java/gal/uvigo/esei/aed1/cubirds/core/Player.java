@@ -46,11 +46,20 @@ public class Player {
         return total;
     }
 
+    // Incrementa en uno el contador de una especie específica.
     public void incrementSpeciesCounter(TypeBird species) {
+
         int index = species.ordinal();
+        /*
+         * species.ordinal() devuelve el índice de la especie en el enum TypeBird, que
+         * coincide con su posición en el array speciesCounters.
+         * por ejemplo FLAMENCO.ordinal() devuelve 0, TUCAN.ordinal() devuelve 1, etc.
+         */
         speciesCounters[index] = speciesCounters[index] + 1;
+
     }
 
+    // Devuelve una lista con todas las especies presentes en la mano del jugador.
     public List<TypeBird> getPlayableSpecies() {
         List<TypeBird> species = new LinkedList<>();
         for (int i = 0; i < hand.size(); i++) {
@@ -60,7 +69,10 @@ public class Player {
         return species;
     }
 
+    // Devuelve el número de cartas de una especie específica que tiene el jugador.
     public int getHandCountForSpecies(TypeBird species) {
+        // vamos contnado el numero de especies que pasamos como parametro
+        // que sería el tipo de pájaro de la carta que queremos jugar
         int index = findGroupIndex(species);
         if (index == -1) {
             return 0;
@@ -68,6 +80,8 @@ public class Player {
         return hand.get(index).size();
     }
 
+    // Devuelve el parámetro smallFlock de una especie específica que tiene el
+    // jugador.
     public int getSmallFlockForSpecies(TypeBird species) {
         int index = findGroupIndex(species);
         if (index == -1) {
@@ -95,12 +109,14 @@ public class Player {
         }
     }
 
+    // Añadir una lista de cartas a la mano.
     public void addCardsToHand(List<Card> cards) {
         for (int i = 0; i < cards.size(); i++) {
             addCardToHand(cards.get(i));
         }
     }
 
+    // Toma todas las cartas de una especie específica y las elimina de la mano.
     public List<Card> takeCardsOfSpecies(TypeBird species) {
         List<Card> toReturn = new LinkedList<>();
         int index = findGroupIndex(species);
@@ -113,9 +129,7 @@ public class Player {
         return toReturn;
     }
 
-    /**
-     * Toma exactamente N cartas de una especie y mantiene el resto en la mano.
-     */
+    // Toma "count" cartas de una especie de la mano del jugador.
     public List<Card> takeNCardsOfSpecies(TypeBird species, int count) {
         List<Card> toReturn = new LinkedList<>();
         int index = findGroupIndex(species);
@@ -137,6 +151,7 @@ public class Player {
         return toReturn;
     }
 
+    // Toma todas las cartas de la mano del jugador.
     public List<Card> takeAllCards() {
         List<Card> allCards = new LinkedList<>();
 
@@ -156,6 +171,9 @@ public class Player {
         return hand.isEmpty();
     }
 
+    // Devuelve el índice del grupo de cartas de una especie específica de la mano
+    // del jugador.
+    // Si no tiene cartas de esa especie, devuelve -1.
     private int findGroupIndex(TypeBird species) {
         int index = -1;
         for (int i = 0; i < hand.size() && index == -1; i++) {

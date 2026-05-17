@@ -24,6 +24,7 @@ public class DeckOfCards {
         }
     }
 
+    // Devuelve la primera carta de la baraja y la elimina de esta.
     public Card takeFirstCard() {
         return deckOfCards.removeFirst();
     }
@@ -36,10 +37,12 @@ public class DeckOfCards {
         return deckOfCards.size();
     }
 
+    // Añade una carta al final de la baraja.
     public void addLast(Card card) {
         deckOfCards.addLast(card);
     }
 
+    // Coloca aleatoriamente todas las cartas de la baraja.
     public void shuffle() {
         List<Card> shuffled = new LinkedList<>();
 

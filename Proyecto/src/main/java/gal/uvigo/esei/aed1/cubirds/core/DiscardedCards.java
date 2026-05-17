@@ -15,6 +15,7 @@ public class DiscardedCards {
         discarded.addLast(card);
     }
 
+    // Llama al método addCard tantas veces como cards.size().
     public void addCards(List<Card> cards) {
         for (int i = 0; i < cards.size(); i++) {
             discarded.addLast(cards.get(i));
@@ -29,6 +30,7 @@ public class DiscardedCards {
         return discarded.size();
     }
 
+    // Mueve todas las cartas descartadas a la baraja y llama al método shuffle().
     public void moveAllToDeck(DeckOfCards deck) {
         while (!discarded.isEmpty()) {
             deck.addLast(discarded.removeFirst());

@@ -66,6 +66,7 @@ public class IU {
         System.out.println(msg);
     }
 
+    // Permite escoger un tipo de pájaro de una lista de tipos posibles.
     public TypeBird chooseBirdType(List<TypeBird> availableTypes) {
         int choice = -1;
 
@@ -80,6 +81,7 @@ public class IU {
         return availableTypes.get(choice - 1);
     }
 
+    // Permite escoger una fila de la mesa.
     public int chooseRow(int rowCount) {
         int choice = -1;
 
@@ -94,6 +96,7 @@ public class IU {
         return choice - 1;
     }
 
+    // Permite escoger un lado para colocar las cartas.
     public boolean chooseSide() {
         int choice = -1;
 
@@ -104,6 +107,7 @@ public class IU {
         return choice == 1;
     }
 
+    // Permite escoger sí o no.
     public boolean chooseYesNo(String message) {
         int choice = -1;
 

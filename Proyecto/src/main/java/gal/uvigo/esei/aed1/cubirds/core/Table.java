@@ -5,14 +5,8 @@ import es.uvigo.esei.aed1.tads.list.List;
 
 public class Table {
 
-    /*
-     * Se barajarán las cartas y se colocarán en la mesa 4 filas con 3 cartas de
-     * pájaro cada una, no puede
-     * haber pájaros de la misma especie en la misma fila. En tal caso, se siguen
-     * sacando cartas hasta
-     * conseguir 3 especies distintas, las cartas no utilizadas se devuelven de
-     * nuevo al final de la baraja.
-     */
+    // La mesa está conformada por 4 filas de cartas. Al inicializarla, cada una de
+    // estas tendrá tres cartas de diferentes especies.
 
     private List<Card>[] filas; // para filas y columnas en el inicializar()
 
@@ -25,6 +19,7 @@ public class Table {
         }
     }
 
+    // Coloca tres cartas de diferentes especies en cada fila.
     public void inicializarMesa(DeckOfCards deck) {
 
         for (int i = 0; i < 4; i++) { // Por cada una de las 4 filas, le añadimos 3 cartas
@@ -42,6 +37,8 @@ public class Table {
         }
     }
 
+    // Devuelve un booleano que indica si el tipo de pájaro de la carta "candidate"
+    // ya está presente en la fila "numFila".
     private boolean tipoRepetidoEnFila(int numFila, Card candidate) {
         boolean repetido = false;
         for (Card c : this.filas[numFila]) {
@@ -56,6 +53,11 @@ public class Table {
         return this.filas.length;
     }
 
+    // Coloca las cartas de "cardsToPlay" en el lugar adecuado de la fila
+    // "rowIndex", y devuelve las cartas que hayan sido capturadas.
+    // Estas cartas capturadas son las que están entre las cartas colocadas y la
+    // primera o última carta de la misma especie que haya en la fila.
+    // (primera o última según placeLeft).
     public List<Card> placeCardsOnRow(List<Card> cardsToPlay, int rowIndex, boolean placeLeft) {
         List<Card> capturedCards = new LinkedList<>();
 
@@ -114,15 +116,19 @@ public class Table {
         return capturedCards;
     }
 
+    // Si la fila "rowIndex" tiene menos de dos especies diferentes, se añaden
+    // cartas de la baraja a la fila hasta que tenga dos especies.
     public void ensureRowHasTwoSpecies(int rowIndex, DeckOfCards deck, DiscardedCards discardedCards) {
         List<Card> row = filas[rowIndex];
         boolean canDraw = true;
 
+        // Mientras la fila tenga menos de dos especies diferentes, se añaden cartas de
+        // la baraja a la fila.
         while (canDraw && !rowHasAtLeastTwoSpecies(row)) {
             if (deck.isEmpty() && !discardedCards.isEmpty()) {
                 discardedCards.moveAllToDeck(deck);
             }
-
+            // si la baraja está vacía y no tenemos descartadas, no robamos mas
             if (deck.isEmpty()) {
                 canDraw = false;
             } else {
@@ -131,6 +137,8 @@ public class Table {
         }
     }
 
+    // Devuelve un booleano que indica si la fila "row" tiene al menos dos especies
+    // diferentes.
     private boolean rowHasAtLeastTwoSpecies(List<Card> row) {
         if (row.size() < 2) {
             return false;
@@ -148,6 +156,7 @@ public class Table {
         return different;
     }
 
+    // Método toString().
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
