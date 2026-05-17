@@ -1,7 +1,5 @@
 # Documentación exhaustiva — Proyecto CuBirds (Tercera Entrega)
 
-
-
 Índice
 - Resumen rápido
 - Reglas del juego mapeadas al código
