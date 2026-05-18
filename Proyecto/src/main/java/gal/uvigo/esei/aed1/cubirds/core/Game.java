@@ -29,6 +29,8 @@ public class Game {
         int numJugadores;
 
         // Mostrar tucán decorativo antes de preguntar el número de jugadores
+        iu.displayMessage("                                    ");
+        iu.displayMessage("                                    ");
         iu.displayMessage("       Cubirds CLI | GrupoG         ");
         iu.displayMessage("                                    ");
         iu.displayMessage("░░░░░░░░▄▄▄▀▀▀▄▄███▄░░░░░░░░░░░░░░░░");
