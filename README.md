@@ -273,5 +273,12 @@ mvn exec:java -Dexec.mainClass="gal.uvigo.esei.aed1.cubirds.iu.Main"
 
 𓅫 — ¡Gracias por leer! Esperamos que disfrutes jugando a CuBirds tanto como nosotros hemos disfrutado programándolo. 🐦✨
 
+
+@Cubirds, juego de maldito games:
+
+https://www.malditogames.com/juegos/cubirds-juego/
+
+
+
 ---------------
 
