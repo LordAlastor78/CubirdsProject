@@ -3,6 +3,18 @@ package gal.uvigo.esei.aed1.cubirds.core;
 import es.uvigo.esei.aed1.tads.list.LinkedList;
 import es.uvigo.esei.aed1.tads.list.List;
 
+/**
+ * CLASE Player — Representa UN jugador en la partida
+ * 
+ * ESTRUCTURA DE LA MANO (MUY IMPORTANTE):
+ * - hand es una List<List<Card>> (lista de listas)
+ * - Cada grupo contiene cartas del MISMO tipo (especie)
+ * - EJEMPLO: hand = [[FLAMENCO_1, FLAMENCO_2], [TUCAN_3, TUCAN_5], [PATO_7]]
+ * 
+ * ESTRUCTURA DE LA COLECCIÓN:
+ * - speciesCounters es un array int[] con 8 posiciones (uno por cada especie)
+ * - Usa TypeBird.ordinal() como índice (FLAMENCO=0, TUCAN=1, etc.)
+ */
 public class Player {
     private String name;
     private List<List<Card>> hand; // Lista de grupos, cada grupo contiene cartas de la misma especie.

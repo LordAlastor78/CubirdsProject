@@ -4,6 +4,27 @@ import es.uvigo.esei.aed1.tads.list.List;
 //por fin arreglamos los imports :D
 import gal.uvigo.esei.aed1.cubirds.iu.IU;
 
+/**
+ * CLASE Game — CONTROLADOR PRINCIPAL del juego CuBirds
+ * 
+ * ¿QUÉ ES?
+ * - Gestiona TODO el flujo de la partida
+ * - Controla jugadores, mesa, baraja, descartes
+ * - Ejecuta cada turno de cada jugador
+ * - Determina cuándo termina el juego y quién gana
+ * 
+ * FLUJO GENERAL DE LA PARTIDA:
+ * 1. play() se ejecuta (método principal)
+ * 2. inicializarJugadores() → pide nombres de jugadores
+ * 3. repartirCartas() → cada jugador recibe 5 cartas (mesa ya inicializada en
+ * constructor)
+ * 4. BUCLE PRINCIPAL:
+ * - Para cada jugador:
+ * - executePlayerTurn() → el jugador juega
+ * - ¿Ganó? (7 especies) → FIN
+ * - ¿Sin cartas en mano? → handleEmptyHand()
+ * - ¿Hay baraja? → Si no, el juego termina
+ */
 public class Game {
 
     // Atributos
@@ -23,205 +44,104 @@ public class Game {
                              // inicializarJugadores()
     }
 
-    // Inicializa los jugadores preguntando cantidad y nombres.
-    // Los jugadores se almacenan directamente en this.players.
+    /**
+     * INICIALIZA JUGADORES - Pide número y nombres al inicio del juego
+     */
     private void inicializarJugadores() {
         int numJugadores;
-
-        // Mostrar tucán decorativo antes de preguntar el número de jugadores
-        iu.displayMessage("                                    ");
-        iu.displayMessage("                                    ");
-        iu.displayMessage("       Cubirds CLI | GrupoG         ");
-        iu.displayMessage("                                    ");
-        iu.displayMessage("░░░░░░░░▄▄▄▀▀▀▄▄███▄░░░░░░░░░░░░░░░░");
-        iu.displayMessage("░░░░░▄▀▀░░░░░░░▐░▀██▌░░░░░░░░░░░░░░░");
-        iu.displayMessage("░░░▄▀░░░░▄▄███░▌▀▀░▀█░░░░░░░░░░░░░░░");
-        iu.displayMessage("░░▄█░░▄▀▀▒▒▒▒▒▄▐░░░░█▌░░░░░░░░░░░░░░");
-        iu.displayMessage("░▐█▀▄▀▄▄▄▄▀▀▀▀▌░░░░░▐█▄░░░░░░░░░░░░░");
-        iu.displayMessage("░▌▄▄▀▀░░░░░░░░▌░░░░▄███████▄░░░░░░░░");
-        iu.displayMessage("░░░░░░░░░░░░░▐░░░░▐███████████▄░░░░░");
-        iu.displayMessage("░░░░░le░░░░░░░▐░░░░▐█████████████▄░░");
-        iu.displayMessage("░░░░toucan░░░░░░▀▄░░░▐█████████████▄");
-        iu.displayMessage("░░░░░░has░░░░░░░░▀▄▄███████████████");
-        iu.displayMessage("░░░░░arrived░░░░░░░░░░░░█▀██████░░░░");
-        iu.displayMessage("                                    ");
-
-        // Pedir número válido de jugadores (2-5)
+        iu.displayMessage("¡Bienvenido a CuBirds!");
         do {
             numJugadores = iu.readNumber("¿Cuántos van a jugar? (2 a 5): ");
-            if (numJugadores < 2 || numJugadores > 5) {
-                iu.displayMessage("Número inválido. Debe estar entre 2 y 5.");
-            }
         } while (numJugadores < 2 || numJugadores > 5);
 
-        // Crear array con tamaño exacto
         this.players = new Player[numJugadores];
-
-        // Pedir nombre para cada jugador
         for (int i = 0; i < numJugadores; i++) {
             String nombre;
             do {
                 nombre = iu.readString("Nombre del jugador " + (i + 1) + ": ");
-                if (nombre == null || nombre.isBlank()) {
-                    iu.displayMessage("El nombre no puede estar vacío o ser nulo.");
-                }
             } while (nombre == null || nombre.isBlank());
-
             this.players[i] = new Player(nombre.trim());
         }
-
-        iu.displayMessage(numJugadores + " jugadores creados. ");
     }
 
-    // Reparte 8 cartas a cada jugador desde el mazo y ordena sus manos por especie.
+    /**
+     * ¡¡ PUNTO DE ENTRADA PRINCIPAL DEL JUEGO !!
+     * Ejecuta el flujo completo: inicializa, reparte, bucle de turnos, determina
+     * ganador
+     */
+    public void play() {
+        inicializarJugadores();
+        repartirCartas();
+        iu.displayMessage(table.toString());
+
+        boolean gameFinished = false;
+        int currentPlayerIndex = 0;
+
+        while (!gameFinished) {
+            Player currentPlayer = players[currentPlayerIndex];
+            if (!currentPlayer.hasNoCards()) {
+                executePlayerTurn(currentPlayer);
+            }
+            if (currentPlayer.getCollectedSpeciesCount() >= 7) {
+                iu.displayMessage("\n¡¡" + currentPlayer.getName() + " ha ganado!!");
+                gameFinished = true;
+            } else if (currentPlayer.hasNoCards()) {
+                boolean endGame = handleEmptyHand(currentPlayer);
+                if (endGame)
+                    gameFinished = true;
+            }
+            if (!gameFinished) {
+                currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+                iu.readString("\nPresiona una tecla para continuar...");
+            }
+        }
+    }
+
+    /**
+     * Reparte 8 cartas a cada jugador al inicio del juego
+     */
     private void repartirCartas() {
-        iu.displayMessage("Repartiendo cartas...");
-        dealCardsToAllPlayers(8);
-        iu.displayMessage("Reparto completado. Cada jugador tiene 8 cartas.");
-    }
-
-    private void dealCardsToAllPlayers(int cardsPerPlayer) {
         for (Player player : this.players) {
-            for (int i = 0; i < cardsPerPlayer; i++) {
+            for (int i = 0; i < 8; i++) {
                 player.addCardToHand(deck.takeFirstCard());
             }
         }
     }
 
-    // Muestra el estado inicial: mesa y manos de todos los jugadores.
-    private void mostrarEstadoInicial() {
-        iu.displayMessage("\n========================================");
-        iu.displayMessage("ESTADO INICIAL DEL JUEGO");
-        iu.displayMessage("========================================\n");
-
-        // Mostrar mesa
-        iu.displayMessage(table.toString());
-
-        // Mostrar mano de cada jugador
-        for (Player jugador : this.players) {
-            iu.displayMessage(jugador.toString());
-            iu.displayMessage("");
-        }
-
-        iu.displayMessage("========================================\n");
-    }
-
-    // Los tres métodos siguientes llaman a la iu, con elegirTipo recibiendo el
-    // jugador como parámetro.
-    private TypeBird elegirTipo(Player player) {
-        List<TypeBird> playable = player.getPlayableSpecies();
-
-        if (playable.isEmpty()) {
-            iu.displayMessage("ERROR: El jugador no tiene especies jugables. Saltando turno.");
-            return null;
-        }
-
-        return iu.chooseBirdType(playable);
-    }
-
-    private int elegirFila() {
-        return iu.chooseRow(table.getRowCount());
-    }
-
-    private boolean elegirLado() {
-        return iu.chooseSide();
-    }
-
-    // Recibe un jugador como parámetro y llama a todas las funciones necesarias
-    // para ejecutar su turno.
+    /**
+     * Ejecuta UN TURNO COMPLETO de un jugador
+     * Proceso: elegir especie → elegir fila → elegir lado → colocar cartas →
+     * capturar → bajar especies → robar carta
+     */
     public void executePlayerTurn(Player player) {
-        iu.displayMessage("Turno del jugador " + player.getName() + ": ");
-        // Mostrar baraja del jugador
-        iu.displayMessage(player.toString()); // :D
+        iu.displayMessage("\nTurno de " + player.getName());
+        iu.displayMessage(player.toString());
+        iu.displayMessage(table.toString());
+
+        List<TypeBird> playable = player.getPlayableSpecies();
+        if (playable.isEmpty()) {
+            iu.displayMessage("No tienes especies jugables. Turno saltado.");
+            return;
+        }
+
+        TypeBird tipoElegido = iu.chooseBirdType(playable);
+        int filaElegida = iu.chooseRow(table.getRowCount());
+        boolean colocarIzquierda = iu.chooseSide();
+
+        List<Card> cardsToPlay = player.takeCardsOfSpecies(tipoElegido);
+        List<Card> capturedCards = table.placeCardsOnRow(cardsToPlay, filaElegida, colocarIzquierda);
+
+        player.addCardsToHand(capturedCards);
+
+        if (!capturedCards.isEmpty()) {
+            table.ensureRowHasTwoSpecies(filaElegida, deck, discardedCards);
+        }
 
         iu.displayMessage(table.toString());
 
-        TypeBird tipoElegido = elegirTipo(player);
-
-        // Si no hay especies jugables, saltar turno
-        if (tipoElegido == null) {
-            iu.displayMessage("No es posible jugar. Turno saltado.");
-        } else {
-            int filaElegida = elegirFila();
-            boolean colocarIzquierda = elegirLado();
-
-            List<Card> cardsToPlay = player.takeCardsOfSpecies(tipoElegido);
-            List<Card> capturedCards = table.placeCardsOnRow(cardsToPlay, filaElegida, colocarIzquierda);
-
-            player.addCardsToHand(capturedCards);
-
-            if (!capturedCards.isEmpty()) {
-                table.ensureRowHasTwoSpecies(filaElegida, deck, discardedCards);
-            }
-
-            // Mostrar la mano del jugador después de la acción
-            iu.displayMessage("\n--- Estado después de jugar cartas ---");
-            iu.displayMessage(player.toString());
-
-            // Mostrar la mesa actualizada
-            iu.displayMessage(table.toString());
-
-            if (!player.hasNoCards()) {
-                handleCollectionChoice(player);
-            }
+        if (!player.hasNoCards()) {
+            handleCollectionChoice(player);
         }
-
-    }
-
-    // Método play para la ejecución de todo el juego.
-    public void play() {
-
-        // Inicializar el juego
-        inicializarJugadores();
-        repartirCartas();
-        mostrarEstadoInicial();
-
-        // Bucle principal
-        boolean gameFinished = false;
-        int currentPlayerIndex = 0;
-
-        do {
-            Player currentPlayer = players[currentPlayerIndex];
-
-            // Si el jugador actual tiene cartas, ejecuta su turno.
-            if (!currentPlayer.hasNoCards()) {
-                executePlayerTurn(currentPlayer);
-            }
-
-            if (!gameFinished) {
-                // Comprobación de si el jugador actual ha ganado por conseguir hacer 7 bandadas
-                // pequeñas distintas.
-                if (currentPlayer.getCollectedSpeciesCount() >= 7) {
-                    iu.displayMessage(currentPlayer.getName()
-                            + " Ha ganado la partida! Ha conseguido 7 especies de pájaros.");
-                    gameFinished = true;
-                } else {
-                    // Si el jugador actual no tiene cartas, se comprueba si el juego termina por no
-                    // poder repartir nuevas cartas.
-                    boolean endByNoDeal = handleEmptyHand(currentPlayer);
-                    if (endByNoDeal) {
-                        gameFinished = true;
-                    }
-                }
-            }
-
-            if (!gameFinished) {
-                // Actualizamos el índice de currentPlayer para el siguiente turno.
-                currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
-
-                // Pausa para que el jugador pueda ver el resultado de su turno antes de que el
-                // siguiente jugador comience
-                iu.readString("\nPresiona cualquiera tecla para continuar...");
-            }
-        } while (!gameFinished);
-
-        // Resultados
-        iu.displayMessage("\n=== RESULTADOS FINALES ===");
-        for (Player p : players) {
-            iu.displayMessage(p.getName() + ": " + p.getCollectedSpeciesCount()
-                    + " especies, " + p.getCollectionSize() + " cartas en coleccion.");
-        }
-
     }
 
     // Si el jugador quiere añadir una especie a su zona de juego, se verifica que
@@ -275,7 +195,11 @@ public class Game {
         }
 
         iu.displayMessage("Repartiendo nuevas manos...");
-        dealCardsToAllPlayers(8);
+        for (Player p : this.players) {
+            for (int i = 0; i < 8; i++) {
+                p.addCardToHand(deck.takeFirstCard());
+            }
+        }
         iu.displayMessage("Reparto completado. Cada jugador tiene 8 cartas.");
         return false;
     }

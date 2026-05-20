@@ -1,88 +1,597 @@
-# Documentación exhaustiva — Proyecto CuBirds (Tercera Entrega)
+# 📚 Documentación Completa — Proyecto CuBirds (Tercera Entrega)
 
-Índice
-- Resumen rápido
-- Reglas del juego mapeadas al código
-- Estructura del repositorio (archivos y paquetes)
-- Clases y API detallada (métodos públicos, comportamiento, ejemplos)
-- Uso: compilar, ejecutar y jugar (ejemplos)
-- Buenas prácticas y pruebas
-- Entrega y versión
+**Para alguien que debe modificar el código sin conocerlo: Lee esta guía de arriba a abajo. Cada sección explica qué hace una parte, cómo funcionan los datos, y dónde cambiar si necesitas modificar algo.**
 
-Resumen rápido
-----------------
-- Implementación en Java del juego CuBirds siguiendo el enunciado de la asignatura.
-- Objetivo del juego (resumido): ser el primer jugador en conseguir 7 especies diferentes en su zona de juego (colección). Existe además la regla auxiliar de bandadas (bandada pequeña/grande) que condiciona cuántas cartas descartar para puntuar una especie.
+---
 
-Reglas del juego (mapa conceptual → comportamiento en el código)
---------------------------------------------------------------
-- Preparación (clases implicadas):
-  - `DeckOfCards`: crea y baraja el mazo.
-  - `Table`: coloca 4 filas (vallas) con 3 cartas cada una, asegurando que inicialmente no haya especies repetidas en una misma fila.
-  - `Game` crea la baraja, la mesa y, en su constructor, inicializa la mesa con 3 cartas por fila.
-  - `Game.repartirCartas()`: reparte 8 cartas a cada jugador.
+## 📑 ÍNDICE (Pulsa Ctrl+F para buscar)
 
-- Turno de jugador (flujo principal en `Game.executePlayerTurn`):
-  1. Mostrar mano y mesa (`IU` + llamadas `toString()` de `Player` y `Table`).
-  2. Elegir especie jugable (`Player.getPlayableSpecies()` y `IU.chooseBirdType(...)`).
-  3. Elegir fila y lado (`IU.chooseRow()`, `IU.chooseSide()`).
-  4. Colocar cartas: `Table.placeCardsOnRow(cardsToPlay, rowIndex, placeLeft)`.
-  5. Recoger cartas rodeadas: `placeCardsOnRow` devuelve las cartas capturadas que se añaden a la mano del jugador.
-  6. Si tras la captura la fila quedó con una única especie, `Table.ensureRowHasTwoSpecies(rowIndex, deck, discardedCards)` rellena desde la baraja (o desde descartes si la baraja se queda vacía) hasta obtener otra especie.
-  7. Opcional: el jugador puede bajar una especie a su zona de juego (`Game.handleCollectionChoice`) si tiene al menos `smallFlock` cartas de esa especie en mano; entonces se incrementa su contador de especie (zona de juego) y se envían al `DiscardedCards` todas las cartas de esa especie que tenga en la mano.
-  8. Comprobación de victoria: si `player.getCollectedSpeciesCount() >= 7`, termina la partida.
+1. [**¿QUÉ ES EL JUEGO CUBIRDS?**](#qué-es-cubirds) — Entender el juego primero
+2. [**ESTRUCTURA DEL PROYECTO**](#estructura-del-proyecto) — Dónde están los archivos
+3. [**CÓMO FUNCIONA: La Baraja de Cartas**](#la-baraja-de-cartas) — `DeckOfCards.java`
+4. [**CÓMO FUNCIONA: Las Cartas Individuales**](#las-cartas-individuales) — `Card.java` y `TypeBird.java`
+5. [**CÓMO FUNCIONA: La Mesa (Tablero)**](#la-mesa-tablero) — `Table.java`
+6. [**CÓMO FUNCIONA: El Jugador**](#el-jugador) — `Player.java`
+7. [**CÓMO FUNCIONA: Las Cartas Descartadas**](#cartas-descartadas) — `DiscardedCards.java`
+8. [**CÓMO FUNCIONA: El Controlador del Juego**](#el-juego-game) — `Game.java` (el más importante)
+9. [**CÓMO FUNCIONA: La Interfaz de Usuario**](#interfaz-de-usuario) — `IU.java`
+10. [**GUÍA: Cómo Modificar el Código**](#guía-para-modificar) — Ejemplos prácticos
+11. [**GUÍA: Compilar y Ejecutar**](#compilar-y-ejecutar) — Paso a paso
+12. [**DIAGRAMA: Flujo de un Turno**](#diagrama-del-flujo) — Visualización
 
-- Fin de ronda por mano vacía (`Game.handleEmptyHand`):
-  - Si el jugador activo se queda sin cartas, los demás se descartan por completo (sus manos van a `DiscardedCards`).
-  - Se vuelcan los descartes a la baraja (`DiscardedCards.moveAllToDeck(deck)`) y se baraja; se reparte nuevamente 8 cartas por jugador si es posible.
-  - Si no hay suficientes cartas para repartir 8 por jugador, el juego termina y gana el jugador con más cartas en su colección (`Game.getWinnerByCollection()`).
+---
 
-Estructura del repositorio
----------------------------
-Raíz del módulo de código: `Proyecto/` (contiene `pom.xml` y `src/`).
+## ¿QUÉ ES CUBIRDS?
 
-- Código principal Java: `src/main/java/gal/uvigo/esei/aed1/cubirds/`
-  - `core` — lógica y modelo del juego.
-  - `iu` — interfaz de usuario (consola) y `Main`.
+CuBirds es un **juego de cartas para 2-5 jugadores** donde:
 
-- Código auxiliar (TADs) añadido en `src/tads` (añadido al classpath por `pom.xml`): implementaciones simples de `List`, `Queue`, `Stack` usadas por el proyecto.
+### 🎯 Objetivo
+- Ser el **primero en conseguir 7 especies diferentes** de pájaros en tu zona de juego (colección).
+- Si se acaban las cartas antes de que alguien gane, **gana quién tiene más cartas** en su colección.
 
-Archivos importantes
-- `Proyecto/pom.xml` — configuración Maven del proyecto.
-- `src/main/java/gal/uvigo/esei/aed1/cubirds/iu/Main.java` — punto de entrada (si lo usas desde IDE o `mvn exec`).
-- `src/main/java/gal/uvigo/esei/aed1/cubirds/iu/IU.java` — interacción por consola (leer números, strings, mostrar menús).
-- `src/main/java/gal/uvigo/esei/aed1/cubirds/core/*` — clases del juego (listadas y documentadas más abajo).
+### 🎮 Cómo Jugar (Resumen)
+1. **Preparación**: Se reparten 8 cartas a cada jugador y se coloca la mesa con 4 filas de 3 cartas cada una.
+2. **Turno de jugador**: 
+   - Elige una especie de pájaro que tenga en la mano
+   - Elige una fila de la mesa
+   - Elige colocar sus cartas a la izquierda o derecha
+   - Si rodea cartas, ¡las captura y añade a su mano!
+   - Opcionalmente, puede bajar especies a su colección si tiene suficientes cartas
+3. **Fin de turno**: El siguiente jugador juega
+4. **Fin de ronda**: Si un jugador se queda sin cartas, todos los demás se descartan, se barajan los descartes, y se reparten nuevas manos.
 
-Nota rápida sobre la versión actual del código:
-- `Card` es un `enum`, no una clase con instancias mutables.
-- `Game` inicializa la mesa en el constructor llamando a `table.inicializarMesa(deck)`.
+### 📊 Regla de "Bandadas"
+- Cada especie tiene un número **mínimo pequeño** (ej: 2 cartas = bandada pequeña)
+- Para bajar una especie a tu colección, necesitas al menos **el número de bandada pequeña**
+- Las cartas de esa especie se descartan cuando las bajas
 
-Clases y API detallada
-----------------------
-La sección siguiente lista las clases clave del paquete `core` y describe sus métodos públicos (firma, comportamiento y ejemplos de uso).
+---
 
-1) `TypeBird` (enumeración)
-- Descripción: enum que representa las especies de pájaros del juego. Cada constante incluye parámetros (ej.: número de cartas en la baraja, umbral de bandada pequeña/grande si aplica).
-- Uso típico:
-  - `TypeBird.SOME_SPECIES` — acceder a la especie.
-  - `TypeBird.values()` — iterar todas las especies.
+## ESTRUCTURA DEL PROYECTO
 
-2) `Card`
-- Descripción: enumeración de cartas del mazo. Cada constante representa una carta concreta y contiene `TypeBird typeBird`, `int smallFlock` (bandada pequeña), `int largeFlock` (bandada grande) y representación textual.
-- Métodos públicos relevantes (ejemplo de firma):
-  - `TypeBird getTypeBird()` — devuelve la especie de la carta.
-  - `int getSmallFlock()` — devuelve el tamaño de bandada pequeña de la carta.
-  - `String toString()` — representación amigable para mostrar en la IU.
+```
+Proyecto/
+├── pom.xml                              (configuración Maven)
+├── explained.md                         (esta documentación)
+└── src/main/java/
+    ├── es/uvigo/.../tads/              (Estructuras de Datos: List, Queue, Stack)
+    └── gal/uvigo/.../cubirds/
+        ├── core/                        (LÓGICA DEL JUEGO)
+        │   ├── Game.java               ⭐ ARCHIVO PRINCIPAL (controla todo)
+        │   ├── Player.java             (datos del jugador)
+        │   ├── Table.java              (el tablero con 4 filas)
+        │   ├── DeckOfCards.java        (la baraja)
+        │   ├── DiscardedCards.java     (cartas descartadas)
+        │   ├── Card.java               (definición de cartas)
+        │   └── TypeBird.java           (especies de pájaros)
+        └── iu/                          (INTERFAZ CON EL USUARIO)
+            ├── Main.java               (punto de entrada: main())
+            └── IU.java                 (lectura de teclado y mensajes)
+```
 
-3) `DeckOfCards`
-- Descripción: estructura que representa la baraja. Opera como deque (robar del frente, meter al final, barajar).
-- Métodos públicos:
-  - `DeckOfCards()` — crea todas las cartas en orden y las baraja.
-  - `Card takeFirstCard()` — saca la carta superior del mazo. Lanza si está vacío (la lógica de juego revisa el montón de descartes antes de llamar si procede).
-  - `void addLast(Card c)` — añade una carta al final de la baraja (se usa para devolver cartas no utilizadas al final).
-  - `boolean isEmpty()` — indica si la baraja está vacía.
-  - `int size()` — número de cartas en el mazo.
-  - `void shuffle()` — mezcla el mazo.
+### 🔑 Lo Más Importante
+
+**`Game.java`** es el **corazón del proyecto**. Todos los demás archivos son herramientas que `Game` utiliza.
+
+- `DeckOfCards`, `Card`, `Table`, `Player`, `DiscardedCards` = **modelos de datos**
+- `IU` = **comunicación con el jugador**
+- `Main` = **punto de inicio**
+
+---
+
+## LA BARAJA DE CARTAS
+
+**Archivo**: `DeckOfCards.java`
+
+### ¿Qué es?
+Una lista de **todas las cartas del juego, mezcladas aleatoriamente**. Funciona como:
+- Quitar cartas del principio (cuando los jugadores necesitan cartas)
+- Añadir cartas al final (cuando se devuelven cartas)
+- Mezclar (shuffle) para que sea aleatoria
+
+### Métodos Clave
+
+```java
+DeckOfCards()           // Constructor: crea todas las cartas y las mezcla
+Card takeFirstCard()    // Saca la primera carta (¡se elimina!)
+void addLast(Card c)    // Añade una carta al final
+boolean isEmpty()       // ¿Está vacía?
+int size()             // ¿Cuántas cartas hay?
+void shuffle()         // Mezcla la baraja
+```
+
+### Ejemplo de Modificación
+
+**Si quieres DUPLICAR el número de cartas en el juego:**
+
+1. Abre `DeckOfCards.java`
+2. En el constructor, donde dice:
+   ```java
+   for (int i = 0; i < Card.values().length; i++) {
+       deckOfCards.addLast(Card.values()[i]);
+   }
+   ```
+3. **Cambio**: Añade las cartas DOS veces:
+   ```java
+   for (int i = 0; i < Card.values().length; i++) {
+       deckOfCards.addLast(Card.values()[i]);
+   }
+   // ← AÑADE ESTO DEBAJO
+   for (int i = 0; i < Card.values().length; i++) {
+       deckOfCards.addLast(Card.values()[i]);  // ¡Otra copia!
+   }
+   ```
+
+---
+
+## LAS CARTAS INDIVIDUALES
+
+### Card.java
+
+**Concepto**: Cada carta es un pájaro específico (FLAMENCO_1, TUCAN_2, etc.)
+
+```java
+Card.FLAMENCO_1        // Es una carta de flamenco
+Card.TUCAN_5           // Es una carta de tucán
+Card.values()          // Array con TODAS las cartas
+```
+
+**Cada carta tiene**:
+- `TypeBird` — qué especie es (FLAMENCO, TUCAN, etc.)
+- `smallFlock` — el mínimo de cartas para "bajar" a colección
+- `largeFlock` — número más grande (no se usa en esta versión)
+
+**Métodos públicos**:
+```java
+TypeBird getTypeBird()   // ¿Qué pájaro es?
+int getSmallFlock()      // ¿Cuántas cartas necesitas para bajar?
+String toString()        // Representación: "FLAMENCO" o similar
+```
+
+### TypeBird.java
+
+**Concepto**: Los 8 tipos de pájaros diferentes
+
+```java
+public enum TypeBird {
+    FLAMENCO, TUCAN, PATO, URRACA, PETIRROJO, LECHUZA, CURRUCA, GUACAMAYO
+}
+```
+
+Es una enumeración (enum) — un conjunto fijo de valores que no cambian.
+
+**¿Cómo se usa?**
+```java
+TypeBird pajaro = TypeBird.FLAMENCO;  // Una especie
+for (TypeBird t : TypeBird.values()) { // Iterar todas las especies
+    System.out.println(t);
+}
+```
+
+---
+
+## LA MESA (TABLERO)
+
+**Archivo**: `Table.java`
+
+### ¿Qué es?
+La **mesa tiene 4 filas**. Cada fila es una lista de cartas boca arriba. Los jugadores juegan sobre estas filas.
+
+```
+Mesa:
+Fila 1: [FLAMENCO] [TUCAN] [PATO]
+Fila 2: [URRACA] [PETIRROJO] [LECHUZA]
+Fila 3: [CURRUCA] [GUACAMAYO] [FLAMENCO]
+Fila 4: [TUCAN] [PATO] [URRACA]
+```
+
+### Métodos Clave
+
+```java
+void inicializarMesa(DeckOfCards deck)
+    // Coloca 3 cartas en cada fila al empezar.
+    // Importante: NO permite cartas del mismo tipo en la misma fila
+
+List<Card> placeCardsOnRow(List<Card> cards, int rowIndex, boolean placeLeft)
+    // Coloca cartas en una fila a la izquierda o derecha
+    // DEVUELVE las cartas capturadas
+    
+void ensureRowHasTwoSpecies(int rowIndex, DeckOfCards deck, DiscardedCards disc)
+    // Si una fila quedó con una sola especie, rellena con cartas del mazo
+```
+
+### Regla de Captura (MUY IMPORTANTE)
+
+Cuando un jugador coloca sus cartas, puede **rodear** cartas de otros jugadores y capturarlas.
+
+**Ejemplo visual**:
+```
+ANTES:  [A] [B] [B] [C]
+Jugador coloca: 2x[B] a la izquierda (placeLeft=true)
+DESPUÉS: [B] [B] [A] [B] [B] [C]
+CAPTURADAS: [A]  ← La carta entre los dos grupos de [B]
+```
+
+**El código que lo hace**: En `Table.placeCardsOnRow()`, busca:
+1. La primera/última carta del mismo tipo que está jugando
+2. Captura todo lo que esté entre las cartas jugadas y esa carta del mismo tipo
+
+---
+
+## EL JUGADOR
+
+**Archivo**: `Player.java`
+
+### ¿Qué tiene cada jugador?
+
+```java
+String name;                    // Su nombre (ej: "Juan")
+List<List<Card>> hand;         // Sus cartas EN LA MANO (agrupadas por tipo)
+int[] speciesCounters;         // Especies en su COLECCIÓN (zona de juego)
+```
+
+### Importante: La Mano está ORGANIZADA
+
+La mano no es una lista plana de cartas. Es una **lista de listas**:
+```
+Mano de Juan:
+├─ [FLAMENCO_1, FLAMENCO_2]   ← grupo 0
+├─ [TUCAN_1, TUCAN_2, TUCAN_3] ← grupo 1
+└─ [PATO_1]                   ← grupo 2
+```
+
+Así es fácil obtener "todas las cartas de FLAMENCO" de una vez.
+
+### Métodos Clave
+
+```java
+void addCardToHand(Card c)
+    // Añade UNA carta a la mano (la agrupa con su especie)
+
+List<Card> takeCardsOfSpecies(TypeBird species)
+    // QUITA TODAS las cartas de una especie y las devuelve
+    // (La mano se queda sin esa especie)
+
+List<TypeBird> getPlayableSpecies()
+    // Devuelve qué especies puede jugar (las que tiene en la mano)
+
+int getHandCountForSpecies(TypeBird species)
+    // ¿Cuántas cartas de FLAMENCO tienes? → 2
+
+void incrementSpeciesCounter(TypeBird species)
+    // +1 a tu colección de FLAMENCO
+
+boolean hasNoCards()
+    // ¿Tu mano está vacía?
+```
+
+---
+
+## CARTAS DESCARTADAS
+
+**Archivo**: `DiscardedCards.java`
+
+### ¿Qué es?
+Un **montón de cartas descartadas**. Cuando un jugador baja una especie a su colección, sus cartas van aquí.
+
+### Métodos
+
+```java
+void addCard(Card c)            // Añade UNA carta
+void addCards(List<Card> cards) // Añade VARIAS cartas
+void moveAllToDeck(DeckOfCards deck)
+    // IMPORTANTE: Mueve todas las cartas aquí de vuelta a la baraja
+    // (Esto ocurre cuando se agota la baraja en mitad de una ronda)
+```
+
+**Flujo**:
+1. Jugador baja FLAMENCO a su colección → cartas van a `DiscardedCards`
+2. Baraja se agota → `moveAllToDeck()` devuelve todos los descartes a la baraja
+3. Se baraja todo y se reparten nuevas cartas
+
+---
+
+## EL JUEGO (Game)
+
+**Archivo**: `Game.java` ⭐
+
+### Este es el ARCHIVO MÁS IMPORTANTE
+
+`Game` **controla TODO**. Es como el director de orquesta. Usa todos los demás para hacer funcionar el juego.
+
+### Atributos (Lo que tiene Game)
+
+```java
+IU iu;                          // Para hablar con el jugador
+DeckOfCards deck;               // La baraja
+Table table;                    // El tablero
+Player[] players;               // Array de jugadores (2-5)
+DiscardedCards discardedCards;  // Montón de descartes
+```
+
+### El Flujo Principal (Método `play()`)
+
+```
+play()
+├─ inicializarJugadores()       → Pregunta nombres
+├─ repartirCartas()             → Cada jugador recibe 8 cartas
+├─ mostrarEstadoInicial()       → Muestra mesa + manos
+└─ BUCLE (mientras el juego no termine):
+   ├─ executePlayerTurn(currentPlayer)  → Turno del jugador actual
+   ├─ ¿Ha ganado? (7 especies) → SÍ: termina
+   ├─ ¿Está sin cartas? → handleEmptyHand()
+   │  └─ Los otros se descartan, repartir nuevas manos
+   │  └─ ¿No hay suficientes cartas? → Gana quién más tiene en colección
+   └─ Siguiente jugador
+```
+
+### Métodos Clave (Lee cada uno)
+
+#### `executePlayerTurn(Player player)`
+Un jugador hace su turno:
+1. Muestra su mano y la mesa
+2. Elige especie de pájaro
+3. Elige fila
+4. Elige lado (izquierda/derecha)
+5. Coloca cartas en la mesa
+6. Recibe cartas capturadas
+7. Si la fila quedó con 1 especie → se rellena
+8. Opcionalmente baja una especie a colección
+
+#### `handleCollectionChoice(Player player)`
+Pregunta si quiere bajar una especie a su colección. Si:
+- Tiene suficientes cartas (ej: 2 FLAMENCOS)
+- Sus cartas van al montón de descartes
+- +1 a su contador de FLAMENCO
+
+#### `handleEmptyHand(Player currentPlayer)`
+Cuando un jugador se queda sin cartas:
+1. Todos los demás se descartan completamente
+2. Los descartes van a la baraja
+3. Se baraja todo
+4. Se reparten 8 cartas a cada uno
+5. Si no hay suficientes cartas → FIN DEL JUEGO (gana quién más tiene)
+
+---
+
+## INTERFAZ DE USUARIO
+
+**Archivo**: `IU.java`
+
+### ¿Qué es?
+Maneja **toda la comunicación con el jugador por consola**.
+
+### Métodos Principales
+
+```java
+void displayMessage(String msg)
+    // Imprime un mensaje en pantalla
+
+int readNumber(String msg)
+    // Pregunta un número y lo devuelve
+    // Valida que sea un número (no letras)
+
+String readString(String msg)
+    // Pregunta un texto
+
+TypeBird chooseBirdType(List<TypeBird> available)
+    // Muestra un menú de especies disponibles y devuelve la elegida
+
+int chooseRow(int rowCount)
+    // Muestra un menú de filas (1-4) y devuelve la elegida
+
+boolean chooseSide()
+    // Pregunta: ¿Izquierda (true) o Derecha (false)?
+
+boolean chooseYesNo(String question)
+    // Pregunta SÍ/NO
+```
+
+**Ejemplo de uso en `Game`**:
+```java
+TypeBird chosen = iu.chooseBirdType(playable);
+// Si playable tiene [FLAMENCO, TUCAN]
+// Muestra: 1. FLAMENCO   2. TUCAN
+// El jugador elige 1 o 2
+// Devuelve: FLAMENCO o TUCAN
+```
+
+---
+
+## 🔧 GUÍA PARA MODIFICAR
+
+### Cambio 1: AUMENTAR EL NÚMERO DE CARTAS INICIALES
+
+**Situación**: Quieres que cada jugador empiece con 10 cartas en lugar de 8.
+
+**Archivos a cambiar**: `Game.java`
+
+**Paso a paso**:
+1. Abre `Game.java`
+2. Busca el método `repartirCartas()`:
+   ```java
+   private void repartirCartas() {
+       iu.displayMessage("Repartiendo cartas...");
+       dealCardsToAllPlayers(8);  // ← AQUÍ está el 8
+       iu.displayMessage("Reparto completado. Cada jugador tiene 8 cartas.");
+   }
+   ```
+3. **Cambio**:
+   ```java
+   dealCardsToAllPlayers(10);  // De 8 a 10
+   iu.displayMessage("Reparto completado. Cada jugador tiene 10 cartas.");
+   ```
+
+### Cambio 2: CAMBIAR EL NÚMERO DE FILAS DE LA MESA
+
+**Situación**: Quieres que la mesa tenga 6 filas en lugar de 4.
+
+**Archivos a cambiar**: `Table.java`
+
+**Paso a paso**:
+1. Abre `Table.java`
+2. Busca el constructor:
+   ```java
+   public Table() {
+       this.filas = new LinkedList[4];  // ← AQUÍ está el 4
+       
+       for (int i = 0; i < 4; i++) {   // ← Y AQUÍ también
+           this.filas[i] = new LinkedList<>();
+       }
+   }
+   ```
+3. **Cambio**:
+   ```java
+   public Table() {
+       this.filas = new LinkedList[6];  // 4 → 6
+       
+       for (int i = 0; i < 6; i++) {   // 4 → 6
+           this.filas[i] = new LinkedList<>();
+       }
+   }
+   ```
+
+### Cambio 3: AÑADIR UN NUEVO TIPO DE PÁJARO
+
+**Situación**: Quieres añadir un nuevo pájaro: "AGUILA"
+
+**Archivos a cambiar**: 
+1. `TypeBird.java` (añadir el enum)
+2. `Card.java` (añadir cartas del nuevo tipo)
+3. `Game.java` (actualizar referencias si es necesario)
+
+**Paso a paso**:
+
+**Paso 1**: `TypeBird.java`
+```java
+public enum TypeBird {
+    FLAMENCO, TUCAN, PATO, URRACA, PETIRROJO, LECHUZA, CURRUCA, GUACAMAYO,
+    AGUILA  // ← AQUÍ AÑADES
+}
+```
+
+**Paso 2**: `Card.java` — Añade cartas al final (antes del cierre):
+```java
+AGUILA_1(8, 12, TypeBird.AGUILA),
+AGUILA_2(8, 12, TypeBird.AGUILA),
+AGUILA_3(8, 12, TypeBird.AGUILA),
+// ... tantas como quieras
+AGUILA_10(8, 12, TypeBird.AGUILA);
+```
+(El 8 es el mínimo de cartas para bajar, el 12 es el máximo)
+
+### Cambio 4: CAMBIAR CUÁNDO ALGUIEN GANA
+
+**Situación**: En lugar de ganar con 7 especies, quieres ganar con 5.
+
+**Archivos a cambiar**: `Game.java`
+
+**Paso a paso**:
+1. Abre `Game.java`
+2. Busca en el método `play()`:
+   ```java
+   if (currentPlayer.getCollectedSpeciesCount() >= 7) {  // ← AQUÍ
+       iu.displayMessage(currentPlayer.getName() + " Ha ganado!");
+       gameFinished = true;
+   }
+   ```
+3. **Cambio**:
+   ```java
+   if (currentPlayer.getCollectedSpeciesCount() >= 5) {  // 7 → 5
+   ```
+
+---
+
+## ▶️ COMPILAR Y EJECUTAR
+
+### Desde Línea de Comandos (PowerShell en Windows)
+
+```powershell
+# 1. Ve a la carpeta del proyecto
+cd "c:\Users\Alastor\Desktop\UVIGO\PROGRAMAS PROII y AEDII\CubirdsProyect\Proyecto"
+
+# 2. Limpia proyectos anteriores
+mvn clean
+
+# 3. Compila
+mvn compile
+
+# 4. Ejecuta
+mvn exec:java -Dexec.mainClass="gal.uvigo.esei.aed1.cubirds.iu.Main"
+```
+
+### Desde un IDE (Eclipse, IntelliJ, NetBeans)
+
+1. Importa el proyecto como "Maven Project"
+2. Espera a que descargue las dependencias
+3. Busca `Main.java` en la carpeta `iu`
+4. Click derecho → "Run As" → "Java Application"
+
+### Si hay Errores
+
+**Error: "Cannot find symbol"**
+→ Limpiar: `mvn clean compile`
+
+**Error: "Package not found"**
+→ Las TADs no se importan bien. Verifica que `pom.xml` tenga las rutas correctas.
+
+---
+
+## 📊 DIAGRAMA DEL FLUJO DE UN TURNO
+
+```
+INICIO DEL TURNO DEL JUGADOR
+         ↓
+[Mostrar mano + mesa]
+         ↓
+[Elegir especie] ← getPlayableSpecies() + chooseBirdType()
+         ↓
+[Elegir fila] ← chooseRow()
+         ↓
+[Elegir lado] ← chooseSide()
+         ↓
+[Sacar cartas de mano] ← takeCardsOfSpecies()
+         ↓
+[Colocar en mesa] ← placeCardsOnRow()
+         ↓
+[Recibir cartas capturadas] ← addCardsToHand()
+         ↓
+[¿Fila con 1 especie?] → SÍ: ensureRowHasTwoSpecies()
+         ↓
+[Mostrar estado actualizado]
+         ↓
+[¿Quiere bajar especie?] → SÍ: handleCollectionChoice()
+         ↓
+FIN DEL TURNO
+```
+
+---
+
+## 📝 NOTAS FINALES
+
+### Qué Está Implementado
+✅ Lógica completa del juego
+✅ Captura de cartas correcta
+✅ Sistema de colección (zona de juego)
+✅ Reciclado de descartes cuando se acaba la baraja
+✅ Determinación de ganador
+
+### Qué NO Está en Esta Versión
+❌ Interfaz gráfica (es por consola)
+❌ Guardado de partidas
+❌ Historial de movimientos
+❌ IA (jugadores automáticos)
+
+### Estructura de Datos Utilizada
+
+El proyecto usa una **implementación personalizada de `List`** (tipo genérico, como ArrayList).
+Está en: `es/uvigo/esei/aed1/tads/list/LinkedList.java`
+
+Tiene métodos básicos: `add()`, `remove()`, `get()`, `size()`, etc.
+
+---
+
+**Fin de la Documentación. ¡Ahora modifica con confianza!** 🚀
 
 4) `DiscardedCards`
 - Descripción: acumulador de cartas descartadas. Implementa:
