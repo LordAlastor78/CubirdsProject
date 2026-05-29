@@ -9,8 +9,8 @@
  ░░░░░░░░░░░░░░░▐░░░░▐███████████▄░░░░░
  ░░░░░le░░░░░░░░░▐░░░░▐█████████████▄░░
  ░░░░toucan░░░░░░░░▀▄░░░▐█████████████▄ 
- ░░░░░░has░░░░░░░░░░▀▄▄███████████████░
- ░░░░░arrivedd░░░░░░░░░░░░░█▀██████░░░░
+ ░░░░░░has░░░░░░░░░░▀▄▄███████████████
+ ░░░░░arrivedd░░░░░░░░░░░░░█▀██████░░░
 
 Proyecto en Java del juego de cartas **CuBirds**, desarrollado para la asignatura de Algoritmos y Estructuras de Datos I.
 
